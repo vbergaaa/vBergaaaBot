@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
@@ -9,10 +10,13 @@ using SC2APIProtocol;
 using Action = SC2APIProtocol.Action;
 // ReSharper disable MemberCanBePrivate.Global
 
-namespace Bot {
+namespace vBergaaaBot {
     public static class Controller {
         //editable
         private static readonly int frameDelay = 0; //too fast? increase this to e.g. 20
+        private static readonly bool realTime = true; // change this to watch the game at the speed of a player
+        private static readonly Stopwatch stopwatch = new Stopwatch();
+        private static long milliseconds;
 
         //don't edit
         private static readonly List<Action> actions = new List<Action>();
@@ -44,6 +48,11 @@ namespace Bot {
 
 
         public static List<Action> CloseFrame() {
+            int delay = 16 - (int)(stopwatch.ElapsedMilliseconds - milliseconds); // 16 = 23 ms/f (fastest) - 7 ms to process the timer
+            if (realTime && delay>0)
+            {
+                Thread.Sleep(delay);
+            }
             return actions;
         }
 
@@ -75,6 +84,8 @@ namespace Bot {
 
             //initialization
             if (frame == 0) {
+                if (realTime)
+                    stopwatch.Start();
                 var resourceCenters = GetUnits(Units.ResourceCenters);
                 if (resourceCenters.Count > 0) {
                     var rcPosition = resourceCenters[0].position;
@@ -83,6 +94,9 @@ namespace Bot {
 
             if (frameDelay > 0)
                 Thread.Sleep(frameDelay);
+
+            if (realTime)
+                milliseconds = stopwatch.ElapsedMilliseconds;
         }
 
 
@@ -90,10 +104,24 @@ namespace Bot {
             return gameData.Units[(int) unitType].Name;
         }
 
+        public static string GetUpgradeName(int upgradeId)
+        {
+            return gameData.Upgrades[upgradeId].Name;
+        }
+
+        public static uint GetUpgradeAbilityId(int upgradeId)
+        {
+            return gameData.Upgrades[upgradeId].AbilityId;
+        }
+
         public static void AddAction(Action action) {
             actions.Add(action);
         }
 
+        public static int GetActionsCount()
+        {
+            return actions.Count;
+        }
 
         public static void Chat(string message, bool team = false) {
             var actionChat = new ActionChat();
@@ -163,18 +191,7 @@ namespace Bot {
             var action = CreateRawUnitCommand(ability);
             action.ActionRaw.UnitCommand.UnitTags.Add(unit.tag);
             AddAction(action);
-            Logger.Info("upgraded something");
-        }
-
-        public static bool HasUpgrade(int upgrade)
-        {
-            // return true if in construction
-            if (upgrade == Upgrades.ZERGLING_MOVE_SPEED)
-                if (VBergaaaBot.Bot.GameMilestones.ZerglingSpeedUpgraded)
-                    return true;
-
-            // else return false
-            return false;
+            Logger.Info("started upgradeing: {0}",ability);
         }
 
         public static int GetTotalCount(uint unitType) {
@@ -185,7 +202,7 @@ namespace Bot {
 
         public static int GetPendingCount(uint unitType, bool inConstruction=true) {
             var workers = GetUnits(Units.Workers);
-            var abilityID = Abilities.GetID(unitType);
+            var abilityID = Abilities.GetTrainUnitId(unitType);
             var cocoons = GetUnits(Units.EGG);
             var production = GetUnits(Units.Production);
 
@@ -280,26 +297,52 @@ namespace Bot {
 
         public static List<Unit> GetUnits(uint unitType, Alliance alliance=Alliance.Self, bool onlyCompleted=false, bool onlyVisible=false, bool onlyIdle=false) {
             //ideally this should be cached in the future and cleared at each new frame
-            var units = new List<Unit>();
-            foreach (var unit in obs.Observation.RawData.Units)
-                if (unit.UnitType == unitType && unit.Alliance == alliance) {
-                    if (onlyCompleted && unit.BuildProgress < 1)
-                        continue;
+            var units = obs.Observation.RawData.Units.Where(u => u.UnitType == unitType && u.Alliance == alliance);
 
-                    if (onlyVisible && (unit.DisplayType != DisplayType.Visible))
-                        continue;
+            if (onlyVisible)
+                units = units.Where(u => u.DisplayType == DisplayType.Visible);
 
-                    if (onlyIdle && (unit.Orders.Count != 0))
-                        continue;
+            if (onlyCompleted)
+                units = units.Where(u => u.BuildProgress == 1);
 
-                    units.Add(new Unit(unit));
-                }
-            return units;
+            if (onlyIdle)
+                units = units.Where(u => u.Orders.Count == 0);
+
+            return units.Select(u=>new Unit(u)).ToList();
         }
 
-        public static bool CanAfford(uint unitType) {
-            var unitData = gameData.Units[(int) unitType];
-            return (minerals >= unitData.MineralCost) && (vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= maxSupply - currentSupply);
+        public static bool CanAfford(uint unitType)
+        {
+            var unitData = gameData.Units[(int)unitType];
+            if (Units.Zerg.Contains(unitType) && !Units.Structures.Contains(unitType))
+            {
+                if (unitType != 105) { 
+                    return ((VBergaaaBot.Bot.Minerals >= unitData.MineralCost) && (VBergaaaBot.Bot.Vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= VBergaaaBot.Bot.AvailableSupply && GetUnits(Units.LARVA).Count > 0));
+                }
+                else // edge case were unit is a zergling (gamedata stats are wrong) 
+                {
+                    return ((VBergaaaBot.Bot.Minerals >= 50) && (VBergaaaBot.Bot.Vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= VBergaaaBot.Bot.AvailableSupply && GetUnits(Units.LARVA).Count > 0));
+                }
+            }
+            return (VBergaaaBot.Bot.Minerals >= unitData.MineralCost) && (VBergaaaBot.Bot.Vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= maxSupply - currentSupply);
+           
+        }
+
+
+        public static bool CanMake(uint unitType)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static bool MeetsTechRequirements(uint unitType)
+        {
+            // possiblity here if tech requirement is hatchery but we have lair to return false. investigate if encountered.
+            if (gameData.Units[(int)unitType].TechRequirement == 0)
+                return true;
+            if (GetUnits(gameData.Units[(int)unitType].TechRequirement, onlyCompleted: true).Count > 0)
+                return true;
+            else
+                return false;            
         }
 
         public static bool IsAlive(ulong tag)
@@ -381,7 +424,7 @@ namespace Bot {
 
         public static bool CanPlace(uint unitType, Point2D targetPos) {
             //Note: this is a blocking call! Use it sparingly, or you will slow down your execution significantly!
-            var abilityID = Abilities.GetID(unitType);
+            var abilityID = Abilities.GetTrainUnitId(unitType);
             
             RequestQueryBuildingPlacement queryBuildingPlacement = new RequestQueryBuildingPlacement();
             queryBuildingPlacement.AbilityId = abilityID;
@@ -536,11 +579,12 @@ namespace Bot {
         }
 
         public static void Construct(uint unitType) {
+            Logger.Info("{0}: Beginning Contructions of a {1}", frame.ToString(), GetUnitName(unitType));
             Entity.BaseLocation startLocation = VBergaaaBot.Bot.MapInformation.StartLocation;
             Point2D startingSpot = startLocation.Location;
             Point2D constructionSpot = null;
             const int radius = 12;
-            var abilityID = Abilities.GetID(unitType);
+            var abilityID = Abilities.GetTrainUnitId(unitType);
             var constructAction = CreateRawUnitCommand(abilityID);
 
             var worker = GetAvailableWorker();
@@ -609,7 +653,7 @@ namespace Bot {
                 Logger.Error("Unable to find worker to construct: {0}", GetUnitName(unitType));
                 return;
             }
-            var abilityID = Abilities.GetID(unitType);
+            var abilityID = Abilities.GetTrainUnitId(unitType);
             var constructAction = CreateRawUnitCommand(abilityID);
             constructAction.ActionRaw.UnitCommand.UnitTags.Add(worker.tag);
             constructAction.ActionRaw.UnitCommand.TargetWorldSpacePos = position;

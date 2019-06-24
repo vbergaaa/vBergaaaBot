@@ -2,11 +2,12 @@
 using SC2APIProtocol;
 using System.Collections.Generic;
 
-namespace Bot {
+namespace vBergaaaBot {
     internal class Program {
         // Settings for your bot.
-        private static readonly Bot bot = new VBergaaaBot();
+        
         private const Race race = Race.Zerg;
+        private static readonly Bot bot = new VBergaaaBot(race);
 
         // Settings for single player mode.
         private static string mapName = RandomMap();

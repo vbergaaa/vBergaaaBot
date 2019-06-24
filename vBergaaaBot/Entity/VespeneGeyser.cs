@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SC2APIProtocol;
 
-namespace Bot.Entity
+namespace vBergaaaBot.Entity
 {
     public class VespeneGeyser
     {

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Bot {
+namespace vBergaaaBot {
     internal static class Abilities {
         //you can get all these values from the stableid.json file (just search for it on your PC)
         
@@ -57,9 +57,14 @@ namespace Bot {
         public static int HARVEST_RETURN_DRONE = 1184;
 
 
-        public static int GetID(uint unit) {
-            return (int) Controller.gameData.Units[(int) unit].AbilityId;
+        public static int GetTrainUnitId(uint unit)
+        {
+            return (int)Controller.gameData.Units[(int)unit].AbilityId;
         }
-        
+        public static int GetResearchUpgradeId(int upgrade)
+        {
+            return (int)Controller.gameData.Upgrades[upgrade].AbilityId;
+        }
+
     }
 }

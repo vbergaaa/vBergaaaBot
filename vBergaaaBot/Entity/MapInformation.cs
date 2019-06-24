@@ -4,15 +4,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SC2APIProtocol;
+using vBergaaaBot.Entity;
 
-namespace Bot
+namespace vBergaaaBot
 {
     public class MapInformation
     {
-        public List<Entity.BaseLocation> BaseLocations = new List<Entity.BaseLocation>();
+        public List<BaseLocation> BaseLocations = new List<Entity.BaseLocation>();
         public Entity.BaseLocation StartLocation;
-        public Entity.BaseLocation NaturalLocation;
-        public List<Entity.BaseLocation> EnemyStartLocations = new List<Entity.BaseLocation>();
+        public List<Point2D> EnemyStartLocations = new List<Point2D>();
 
 
         public void Analyse(VBergaaaBot vBergaaaBot)
@@ -86,7 +86,7 @@ namespace Bot
                 }
             }            
 
-            // get base position of each mineral cluster
+            // get average position of each mineral cluster
             foreach (Entity.BaseLocation baseLocation in BaseLocations)
             {
                 // find average location of cluster
@@ -156,33 +156,18 @@ namespace Bot
 
                 // final tile placement should be tempLoc.. add it to base locatoins
                 baseLocation.Location = tempLoc;
-            }                
+            }
 
-            // get nearest expansion and oponents bases
-            NaturalLocation = null;
-            float expansionDistance = 1000000;
-            foreach (Entity.BaseLocation baseLocation in BaseLocations)
+            // order bases
+            List<BaseLocation> orderedLocations = BaseLocations.OrderBy(b => GetDistance2D(b.Location, StartLocation.Location)).ToList();
+            BaseLocations = orderedLocations;
+
+            // get enemy locations
+            foreach (Point2D startLocation in Controller.gameInfo.StartRaw.StartLocations)
             {
-                // natural   
-                if (GetDistance2D(baseLocation.Location, StartLocation.Location) < 10)
-                {
-                    StartLocation = baseLocation;
+                if (GetDistance2D(StartLocation.Location, startLocation) < 10)
                     continue;
-                }
-                    
-                if (GetDistance2D(baseLocation.Location, StartLocation.Location) < expansionDistance)
-                {
-                    expansionDistance = GetDistance2D(baseLocation.Location, StartLocation.Location);
-                    NaturalLocation = baseLocation;
-                }
-
-                // enemy bases
-                foreach (Point2D startLocation in Controller.gameInfo.StartRaw.StartLocations)
-                {
-                    if (GetDistance2D(baseLocation.Location, startLocation) < 10)
-                        if (GetDistance2D(baseLocation.Location, StartLocation.Location) > 30)
-                            EnemyStartLocations.Add(baseLocation);
-                }
+                EnemyStartLocations.Add(startLocation);
             }
         }
 
@@ -196,7 +181,25 @@ namespace Bot
 
             return (float) Math.Sqrt((p1x - p2x) * (p1x - p2x) + (p1y - p2y) * (p1y - p2y));
         }
-
+        public static float GetDistance2D(Point2D p1, Point p2)
+        {
+            Point2D p3 = new Point2D { X = p2.X, Y = p2.Y };
+            return GetDistance2D(p1, p3);
+        }
+        public Point2D GetExpansionLocation()
+        {
+            
+            // get all resource centers
+            List<Point2D> rcLocations = Controller.GetUnits(Units.ResourceCenters).Select(u=>u.Pos).ToList();
+            foreach (BaseLocation b in BaseLocations)
+            {
+                Point2D nearestRC = rcLocations.OrderBy(rc => GetDistance2D(rc, b.Location)).FirstOrDefault();
+                if (GetDistance2D(nearestRC,b.Location) < 10 )
+                    continue;
+                return b.Location;
+            }
+            return null;
+        }
         private float checkPosition(Point2D loc, Entity.BaseLocation baseLoc)
         {
             foreach (Entity.MineralField mf in baseLoc.MineralPatches) 

@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SC2APIProtocol;
 
-namespace Bot.Builds
+namespace vBergaaaBot.Builds
 {
     public class BuildOrderStep
     {
@@ -18,9 +18,20 @@ namespace Bot.Builds
 
         public BuildOrderStep(uint unit, int qty)
         {
-            this.Type = BuildOrderType.Unit;
+            if (Units.Structures.Contains(unit))
+                this.Type = BuildOrderType.Building;
+            else
+                this.Type = BuildOrderType.Unit;
             this.Unit = unit;
             this.Qty = qty;
+        }
+        public BuildOrderStep(uint unit)
+        {
+            if (Units.Structures.Contains(unit))
+                this.Type = BuildOrderType.Building;
+            else
+                this.Type = BuildOrderType.Unit;
+            this.Unit = unit;
         }
 
 

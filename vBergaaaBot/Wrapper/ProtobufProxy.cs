@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Google.Protobuf;
 using SC2APIProtocol;
 
-namespace Bot {
+namespace vBergaaaBot {
     public class ProtobufProxy {
         private ClientWebSocket clientSocket;
         private const int connectTimeout = 20000;

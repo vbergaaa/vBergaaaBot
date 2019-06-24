@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SC2APIProtocol;
 
-namespace Bot {
+namespace vBergaaaBot {
     public class GameConnection {
         private const string address = "127.0.0.1";
         private const int stepSize = 1;

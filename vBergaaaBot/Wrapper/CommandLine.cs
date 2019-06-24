@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using SC2APIProtocol;
 
-namespace Bot {
+namespace vBergaaaBot {
     /* This class is used to load the CommandLine arguments for the bot.
      */
     internal class CLArgs {

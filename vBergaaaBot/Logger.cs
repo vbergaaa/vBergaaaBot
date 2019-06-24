@@ -3,7 +3,7 @@ using System.IO;
 
 // ReSharper disable AssignNullToNotNullAttribute
 
-namespace Bot {
+namespace vBergaaaBot {
     public static class Logger {
         private static string logFile;
         private static bool stdoutClosed;

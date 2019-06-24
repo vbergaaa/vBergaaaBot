@@ -4,8 +4,11 @@ using SC2APIProtocol;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using vBergaaaBot.Builds;
+using vBergaaaBot.Helpers;
+using vBergaaaBot.Entity;
 
-namespace Bot
+namespace vBergaaaBot
 {
     public class VBergaaaBot : Bot
     {
@@ -19,15 +22,27 @@ namespace Bot
         public uint PlayerID;
         public MapInformation MapInformation = new MapInformation();
         public static VBergaaaBot Bot;
-        public Builds.Build Build;
-        public Entity.InternalData GameMilestones = new Entity.InternalData();
+        public Build Build;
+        public InternalData InternalData;
+        List<BuildOrderStep> BuildOrder;
+        List<BuildOrderStep> MaxOutComp;
+
+        public int ReservedMinerals { get; set; }
+        public int ReservedGas { get; set; }
+        public int ReservedSupply { get; set; }
+
+        public int Minerals { get; set; }
+        public int Vespene { get; set; }
+        public int AvailableSupply { get; set; }
 
         // make a manager to spead creep? (build depending?)
 
         // constructor
-        public VBergaaaBot()
+        public VBergaaaBot(Race race)
         {
+            MyRace = race;
             Bot = this;
+            InternalData = new InternalData(this);
         }
 
         public void OnStart(ResponseGameInfo gameInfo, ResponseData data, ResponseObservation observation, uint playerID)
@@ -40,18 +55,32 @@ namespace Bot
             PlayerID = playerID;
 
             //Build = new Builds.FirstBuild();
-            Build = new Builds.Roach_All_In();
+            Build = new Roach_All_In();
+            BuildOrder = Build.GetBuildOrder();
+            MaxOutComp = Build.MaxOutComp();
 
             // load data might essential
-
             MapInformation.Analyse(this);
         }
 
         public IEnumerable<Action> OnFrame(ResponseObservation observation)
         {
             Observation = observation;
+            RefreshResources();
+            Controller.OpenFrame();
+            BuildOrderStep nextStep = BotHelper.GetNextStep(BuildOrder, MaxOutComp, this);
+            BotHelper.ExecuteBuildOrderStep(nextStep, this);
+            if (ReservedMinerals > 0)
+                ReservedMinerals = ReservedMinerals;
+            Build.OnFrame(this);
+            return Controller.CloseFrame();
+        }
 
-            return Build.OnFrame(this);
+        public void RefreshResources()
+        {
+            Minerals = (int)Observation.Observation.PlayerCommon.Minerals - ReservedMinerals;
+            Vespene = (int)Observation.Observation.PlayerCommon.Vespene - ReservedGas;
+            AvailableSupply = (int)Observation.Observation.PlayerCommon.FoodCap - (int)Observation.Observation.PlayerCommon.FoodUsed - ReservedSupply;
         }
     }
 }

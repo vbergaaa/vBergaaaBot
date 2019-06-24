@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Bot {
+namespace vBergaaaBot {
     internal static class Units {
         public static uint COLOSSUS = 4;
         public static uint TECHLAB = 5;
@@ -48,9 +48,6 @@ namespace Bot {
         public static uint SUPPLY_DEPOT_LOWERED = 47;
         public static uint MARINE = 48;
         public static uint REAPER = 49;
-        public static uint WIDOW_MINE = 498;
-        public static uint WIDOW_MINE_BURROWED = 500;
-        public static uint LIBERATOR = 689;
         public static uint GHOST = 50;
         public static uint MARAUDER = 51;
         public static uint MULE = 268;
@@ -156,9 +153,14 @@ namespace Bot {
         public static uint SPACE_PLATFORM_GEYSER = 343;
         public static uint RICH_VESPENE_GEYSER = 344;
         public static uint MINERAL_FIELD_750 = 483;
+        public static uint WIDOW_MINE = 498;
+        public static uint WIDOW_MINE_BURROWED = 500;
+        public static uint LURKER = 502;
         public static uint PROTOSS_VESPENE_GEYSER = 608;
         public static uint LAB_MINERAL_FIELD = 665;
         public static uint LAB_MINERAL_FIELD_750 = 666;
+        public static uint RAVAGER = 688;
+        public static uint LIBERATOR = 689;
         public static uint PURIFIER_RICH_MINERAL_FIELD = 796;
         public static uint PURIFIER_RICH_MINERAL_FIELD_750 = 797;
         public static uint PURIFIER_VESPENE_GEYSER = 880;

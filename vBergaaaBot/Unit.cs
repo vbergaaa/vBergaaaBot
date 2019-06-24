@@ -5,7 +5,7 @@ using SC2APIProtocol;
 
 // ReSharper disable MemberCanBePrivate.Global
 
-namespace Bot {
+namespace vBergaaaBot {
     public class Unit {
         public SC2APIProtocol.Unit original;
         private UnitTypeData unitTypeData;
@@ -64,7 +64,7 @@ namespace Bot {
             if (!queue && orders.Count > 0)
                 return;            
 
-            var abilityID = Abilities.GetID(unitType);            
+            var abilityID = Abilities.GetTrainUnitId(unitType);            
             var action = Controller.CreateRawUnitCommand(abilityID);
             action.ActionRaw.UnitCommand.UnitTags.Add(tag);
             Controller.AddAction(action);
