@@ -1,16 +1,19 @@
-﻿using System;
+﻿using SC2APIProtocol;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using vBergaaaBot;
+using vBergaaaBot.Helpers;
+
 namespace vBergaaaBot.Entity
 {
     public class InternalData
     {
         public Dictionary<int, bool> Upgrades = new Dictionary<int, bool>();
-        public Dictionary<uint, int> Units = new Dictionary<uint, int>();
-        public Dictionary<uint, int> Buildings = new Dictionary<uint, int>();
+        public Dictionary<Unit, int> CompletedUnits = new Dictionary<Unit, int>();
+        public Dictionary<PendingUnit, int> PendingUnits = new Dictionary<PendingUnit, int>();
 
         public void AddUpgrade(int upgradeId)
         {
@@ -27,70 +30,67 @@ namespace vBergaaaBot.Entity
                 .FirstOrDefault();
         }
 
-        public InternalData(VBergaaaBot bot)
+        public void AddUnit(Unit u)
         {
-            if (bot.MyRace == SC2APIProtocol.Race.Zerg)
-            {
-                Units.Add(vBergaaaBot.Units.DRONE, 12);
-                Units.Add(vBergaaaBot.Units.OVERLORD,1);
-                Buildings.Add(vBergaaaBot.Units.HATCHERY, 1);
-            }  
+            CompletedUnits.Add(u, 1);
         }
 
-        public void AddUnits(uint unitId, int qty)
+        public void AddPendingUnit(uint unitId, long expFrame)
         {
-            if (Units.ContainsKey(unitId))
+            PendingUnits.Add(new PendingUnit(unitId, expFrame),1);
+        }
+        public void AddPendingUnit(uint unitId, ulong tag)
+        {
+            PendingUnits.Add(new PendingUnit(unitId, tag),1);
+        }
+
+        public int GetTotalUnitCount(uint unitId)
+        {
+            // edge case where unit is worker (inaccurate due to hiden in geyser)
+            if (Units.Workers.Contains(unitId))
+                return (int)VBergaaaBot.Bot.Observation.Observation.PlayerCommon.FoodWorkers + PendingUnits.Count(u => u.Key.UnitType == unitId);
+            return CompletedUnits.Count(u => u.Key.unitType == unitId) + PendingUnits.Count(u => u.Key.UnitType == unitId);
+        }
+
+        public int GetActiveUnitCount(uint unitId)
+        {
+            return CompletedUnits.Count(u => u.Key.unitType == unitId);
+        }
+
+        public void OnFrame(Observation obsv)
+        {
+            CompletedUnits = new Dictionary<Unit, int>();
+            // reads the game state and adds all units into CompletedUnits Dictionary
+            foreach (var unit in obsv.RawData.Units.Where(u=>u.Alliance==Alliance.Self))
             {
-                int oldValue = Units.First(u => u.Key == unitId).Value;
-                Units.Remove(unitId);
-                Units.Add(unitId, qty + oldValue);
+                AddUnit(new Unit(unit));
             }
-            else
-                Units.Add(unitId, qty);
-        }
 
-        public void AddUnits(uint unitId)
-        {
-            AddUnits(unitId, 1);
-        }
-
-        public void RemoveUnit(uint unitId)
-        {
-            AddUnits(unitId, -1);
-        }
-
-        public void AddBuildings(uint unitId, int qty)
-        {
-            // need to code logic to remove the total supply of drones here
-            if (vBergaaaBot.Units.Zerg.Contains(unitId))
-                RemoveUnit(104); //drone
-            if (Buildings.ContainsKey(unitId))
+            // reads pending units and removes any that should be completed
+            var unitsToUpdate = PendingUnits.Where(u => u.Key.ExpectedFrame == obsv.GameLoop).ToList();
+            foreach (var pending in unitsToUpdate)
             {
-                int oldValue = Buildings.First(u => u.Key == unitId).Value;
-                Buildings.Remove(unitId);
-                Buildings.Add(unitId, qty + oldValue);
+                PendingUnits.Remove(pending.Key);
             }
-            else
-                Buildings.Add(unitId, qty);
+
+            // reads pending buildings and removes any that should have started or drone has died.
+            var friendlyUnits = CompletedUnits.Select(u => u.Key.tag);
+            var buildingsToRemove = PendingUnits.Where(p => !friendlyUnits.Contains(p.Key.UnitTag) && p.Key.UnitTag!=0).ToList();
+            foreach (var pending in buildingsToRemove)
+            {
+                PendingUnits.Remove(pending.Key);
+            }
         }
 
-        public void AddBuildings(uint unitId)
+        public void PrintUnitState()
         {
-            AddBuildings(unitId, 1);
+            string message = "";
+            var unitCounts = CompletedUnits.GroupBy(u => u.Key.unitType);
+            foreach (var unit in unitCounts)
+            {
+                message += "\nUnit: " + Controller.GetUnitName(unit.Key) + ", Code: " + unit.Key + " Count: " + unit.Count();
+            }
+            Logger.Info(message);
         }
-
-        public int GetUnitCount(uint unitId)
-        {
-            if (Units.ContainsKey(unitId))
-                return Units.FirstOrDefault(u => u.Key == unitId).Value;
-            return 0;
-        }
-        public int GetBuildingCount(uint unitId)
-        {
-            if (Buildings.ContainsKey(unitId))
-                return Buildings.FirstOrDefault(u => u.Key == unitId).Value;
-            return 0;
-        }
-
     }
 }

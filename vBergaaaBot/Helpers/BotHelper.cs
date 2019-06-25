@@ -15,30 +15,32 @@ namespace vBergaaaBot.Helpers
         {
             foreach (BuildOrderStep step in buildOrder)
             {
+                var qty = bot.InternalData.GetTotalUnitCount(step.Unit);
                 // check if we want it.
                 if (step.Type == BuildOrderType.Unit)  
-                    if (bot.InternalData.GetUnitCount(step.Unit) < step.Qty)
+                    if (qty < step.Qty)
                         return step;
                 if (step.Type == BuildOrderType.Building)
-                    if (bot.InternalData.GetBuildingCount(step.Unit) < step.Qty)
+                    if (qty < step.Qty)
                         return step;
                 if (step.Type == BuildOrderType.Upgrade)
                     if (bot.InternalData.CheckUpgrade(step.Upgrade) != true)
                         return step;
             }
             int overlordsTraining = Controller.GetUnits(Units.OVERLORD_COCOON).Count;
-            if (bot.AvailableSupply-5*overlordsTraining < 6)
+            if (bot.Observation.Observation.PlayerCommon.FoodCap-bot.Observation.Observation.PlayerCommon.FoodUsed-5*overlordsTraining < 6)
             {
                 return new BuildOrderStep(Units.OVERLORD);
             }
             foreach (BuildOrderStep step in maxComp)
             {
+                var qty = bot.InternalData.GetTotalUnitCount(step.Unit);
                 // check if we want it.
                 if (step.Type == BuildOrderType.Unit)
-                    if (bot.InternalData.GetUnitCount(step.Unit) < step.Qty)
+                    if (qty < step.Qty)
                         return step;
                 if (step.Type == BuildOrderType.Building)
-                    if (bot.InternalData.GetBuildingCount(step.Unit) < step.Qty)
+                    if (qty < step.Qty)
                         return step;
                 if (step.Type == BuildOrderType.Upgrade)
                     if (bot.InternalData.CheckUpgrade(step.Upgrade) != true)
@@ -46,7 +48,7 @@ namespace vBergaaaBot.Helpers
             }
 
             return null;
-        }
+        } 
         public static void ExecuteBuildOrderStep(BuildOrderStep step, VBergaaaBot bot)
         {
             
@@ -58,22 +60,18 @@ namespace vBergaaaBot.Helpers
                     MorphStep morph = MorphHelper.MorpSteps.Where(m => m.ToUnit == step.Unit).FirstOrDefault();
                     if (morph != null)
                     {
+                        long trainTime = (long)(bot.Data.Units[(int)step.Unit].BuildTime);
                         Controller.GetUnits(morph.FromUnit)[0].Train(step.Unit);
-                        bot.InternalData.AddUnits(step.Unit);
-                        bot.ReservedMinerals += (int)bot.Data.Units[(int)step.Unit].MineralCost;
-                        bot.ReservedGas += (int)bot.Data.Units[(int)step.Unit].VespeneCost;
-                        bot.ReservedSupply += (int)bot.Data.Units[(int)step.Unit].FoodRequired;
+                        bot.InternalData.AddPendingUnit(step.Unit, (long)bot.Observation.Observation.GameLoop + trainTime);
                     }
                         
                     //get train step (queens only for z)
                     TrainStep train = TrainHelper.TrainSteps.Where(m => m.Unit == step.Unit).FirstOrDefault();
                     if (train != null)
                     {
+                        long trainTime = (long)(bot.Data.Units[(int)step.Unit].BuildTime);
                         Controller.GetUnits(train.FromBuildings, onlyIdle: true, onlyCompleted:true)[0].Train(step.Unit);
-                        bot.InternalData.AddUnits(step.Unit);
-                        bot.ReservedMinerals += (int)bot.Data.Units[(int)step.Unit].MineralCost;
-                        bot.ReservedGas += (int)bot.Data.Units[(int)step.Unit].VespeneCost;
-                        bot.ReservedSupply += (int)bot.Data.Units[(int)step.Unit].FoodRequired;
+                        bot.InternalData.AddPendingUnit(step.Unit, (long)bot.Observation.Observation.GameLoop + trainTime);
                     }
                         
                     // log notice to update
@@ -85,21 +83,16 @@ namespace vBergaaaBot.Helpers
             {
                 if (Controller.CanAfford(step.Unit) && Controller.MeetsTechRequirements(step.Unit))
                 {
+                    // get drone
                     if (Units.ResourceCenters.Contains(step.Unit))
                     {
-                        bot.ReservedMinerals += (int)bot.Data.Units[(int)step.Unit].MineralCost;
-                        bot.ReservedGas += (int)bot.Data.Units[(int)step.Unit].VespeneCost;
-                        bot.ReservedSupply += (int)bot.Data.Units[(int)step.Unit].FoodRequired;
-                        Controller.Construct(step.Unit, bot.MapInformation.GetExpansionLocation());
-                        bot.InternalData.AddBuildings(step.Unit);
+                        var droneTag = Controller.Construct(step.Unit, bot.MapInformation.GetExpansionLocation());
+                        bot.InternalData.AddPendingUnit(step.Unit, droneTag);
                     }
                     else
                     {
-                        Controller.Construct(step.Unit);
-                        bot.InternalData.AddBuildings(step.Unit);
-                        bot.ReservedMinerals += (int)bot.Data.Units[(int)step.Unit].MineralCost;
-                        bot.ReservedGas += (int)bot.Data.Units[(int)step.Unit].VespeneCost;
-                        bot.ReservedSupply += (int)bot.Data.Units[(int)step.Unit].FoodRequired;
+                        var droneTag = Controller.Construct(step.Unit);
+                        bot.InternalData.AddPendingUnit(step.Unit, droneTag);
                     }
                 } 
             }
@@ -117,9 +110,6 @@ namespace vBergaaaBot.Helpers
                             int abilityId = Abilities.GetResearchUpgradeId(step.Upgrade);
                             Controller.Upgrade(abilityId, unit);
                             bot.InternalData.AddUpgrade(step.Upgrade);
-                            bot.ReservedMinerals += (int)bot.Data.Units[(int)step.Unit].MineralCost;
-                            bot.ReservedGas += (int)bot.Data.Units[(int)step.Unit].VespeneCost;
-                            bot.ReservedSupply += (int)bot.Data.Units[(int)step.Unit].FoodRequired;
                         }
                     }
                     else
@@ -127,13 +117,7 @@ namespace vBergaaaBot.Helpers
                     
                 }
             }
-            
-            if (Controller.GetActionsCount() == 0)
-            {
-                bot.ReservedMinerals = 0;
-                bot.ReservedSupply = 0;
-                bot.ReservedGas = 0;
-            }
+
         }
     }
 }

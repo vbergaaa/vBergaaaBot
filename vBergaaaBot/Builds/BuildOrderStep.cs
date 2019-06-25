@@ -33,13 +33,17 @@ namespace vBergaaaBot.Builds
                 this.Type = BuildOrderType.Unit;
             this.Unit = unit;
         }
-
-
         public BuildOrderStep(int upgrade, bool completed)
         {
             this.Type = BuildOrderType.Upgrade;
             this.Upgrade = upgrade;
             this.Completed = completed;
+        }
+
+        public override bool Equals(object obj)
+        {
+            BuildOrderStep other = (BuildOrderStep)obj;
+            return (this.Unit == other.Unit && this.Qty == other.Qty);
         }
     }
 

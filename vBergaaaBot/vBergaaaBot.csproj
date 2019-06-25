@@ -59,10 +59,17 @@
     <Compile Include="Entity\MineralField.cs" />
     <Compile Include="Entity\VespeneGeyser.cs" />
     <Compile Include="Helpers\MorphHelper.cs" />
+    <Compile Include="Helpers\PendingUnit.cs" />
     <Compile Include="Helpers\TrainHelper.cs" />
     <Compile Include="Helpers\UpgradeHelper.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Entity\MapInformation.cs" />
+    <Compile Include="Managers\AttackManager.cs" />
+    <Compile Include="Managers\GeneralBaseManager.cs" />
+    <Compile Include="Managers\MacroQueenManager.cs" />
+    <Compile Include="Managers\Manager.cs" />
+    <Compile Include="Managers\ScoutManager.cs" />
+    <Compile Include="Managers\Tasks\Task.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Protocol\Common.cs" />
     <Compile Include="Protocol\Data.cs" />

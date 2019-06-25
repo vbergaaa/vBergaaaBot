@@ -39,9 +39,17 @@ namespace vBergaaaBot.Helpers
     {
         public uint FromUnit { get; set; }
         public uint ToUnit { get; set; }
+        public uint Egg { get; set; }
+        public MorphStep(uint to, uint from, uint egg)
+        {
+            FromUnit = from;
+            Egg = egg;
+            ToUnit = to;
+        }
         public MorphStep(uint to, uint from)
         {
             FromUnit = from;
+
             ToUnit = to;
         }
     }

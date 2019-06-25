@@ -317,14 +317,14 @@ namespace vBergaaaBot {
             if (Units.Zerg.Contains(unitType) && !Units.Structures.Contains(unitType))
             {
                 if (unitType != 105) { 
-                    return ((VBergaaaBot.Bot.Minerals >= unitData.MineralCost) && (VBergaaaBot.Bot.Vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= VBergaaaBot.Bot.AvailableSupply && GetUnits(Units.LARVA).Count > 0));
+                    return ((minerals >= unitData.MineralCost) && (vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= maxSupply - currentSupply && GetUnits(Units.LARVA).Count > 0));
                 }
                 else // edge case were unit is a zergling (gamedata stats are wrong) 
                 {
-                    return ((VBergaaaBot.Bot.Minerals >= 50) && (VBergaaaBot.Bot.Vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= VBergaaaBot.Bot.AvailableSupply && GetUnits(Units.LARVA).Count > 0));
+                    return ((minerals >= 50) && (vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= maxSupply - currentSupply && GetUnits(Units.LARVA).Count > 0));
                 }
             }
-            return (VBergaaaBot.Bot.Minerals >= unitData.MineralCost) && (VBergaaaBot.Bot.Vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= maxSupply - currentSupply);
+            return (minerals >= unitData.MineralCost) && (vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= maxSupply - currentSupply);
            
         }
 
@@ -521,7 +521,6 @@ namespace vBergaaaBot {
 
         public static void PrioritiseGas()
         {
-            Logger.Info("Attempting to saturate gas");
             var availableWorkers = GetUnits(Units.Workers).Where(u=>u.orders[0].AbilityId == 1183).ToList();
             var geysers = GetUnits(Units.EXTRACTOR, onlyCompleted: true);
             foreach (var g in geysers)
@@ -578,8 +577,7 @@ namespace vBergaaaBot {
             return null;
         }
 
-        public static void Construct(uint unitType) {
-            Logger.Info("{0}: Beginning Contructions of a {1}", frame.ToString(), GetUnitName(unitType));
+        public static ulong Construct(uint unitType) {
             Entity.BaseLocation startLocation = VBergaaaBot.Bot.MapInformation.StartLocation;
             Point2D startingSpot = startLocation.Location;
             Point2D constructionSpot = null;
@@ -591,14 +589,13 @@ namespace vBergaaaBot {
             if (worker == null)
             {
                 Logger.Error("Unable to find worker to construct: {0}", GetUnitName(unitType));
-                return;
+                return 1;
             }
 
             // if gas geyser
             if (Units.GasGeysers.Contains(unitType))
             {
                 ulong constructionLocation = 0;
-                Logger.Info("attempting to build a gas");
                 foreach (var rc in GetUnits(Units.ResourceCenters,onlyCompleted:true))
                     foreach (var gas in GetUnits(Units.GasGeysers, alliance: Alliance.Neutral))
                         if (gas.unitType != Units.EXTRACTOR && Get2dDistanceSquared(rc.Pos,gas.Pos) < 81)
@@ -610,7 +607,7 @@ namespace vBergaaaBot {
                     constructAction.ActionRaw.UnitCommand.TargetUnitTag = constructionLocation;
                     AddAction(constructAction);
                     Logger.Info("Constructing: {0} @ geyser {1}", GetUnitName(unitType), constructionLocation);
-                    return;
+                    return worker.tag;
                 }
                 
             }
@@ -642,23 +639,24 @@ namespace vBergaaaBot {
             AddAction(constructAction);
 
             Logger.Info("Constructing: {0} @ {1} / {2}", GetUnitName(unitType), constructionSpot.X, constructionSpot.Y);
-
+            return worker.tag;
         }
 
-        public static void Construct(uint unitType, Point2D position)
+        public static ulong Construct(uint unitType, Point2D position)
         {
             var worker = GetAvailableWorker();
             if (worker == null)
             {
                 Logger.Error("Unable to find worker to construct: {0}", GetUnitName(unitType));
-                return;
+                return 1;
             }
             var abilityID = Abilities.GetTrainUnitId(unitType);
             var constructAction = CreateRawUnitCommand(abilityID);
             constructAction.ActionRaw.UnitCommand.UnitTags.Add(worker.tag);
             constructAction.ActionRaw.UnitCommand.TargetWorldSpacePos = position;
             AddAction(constructAction);
-            Logger.Info("Constructing: {0}", GetUnitName(unitType));
+            Logger.Info("Constructing: {0} @ {1} / {2}", GetUnitName(unitType), position.X, position.Y);
+            return worker.Tag;
         }
 
         public static ulong GetNearestTag(Point2D point, List<Unit> bases)

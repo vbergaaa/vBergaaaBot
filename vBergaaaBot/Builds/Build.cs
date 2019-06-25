@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SC2APIProtocol;
 using vBergaaaBot.Entity;
+using vBergaaaBot.Managers;
 
 namespace vBergaaaBot.Builds
 {
@@ -15,5 +16,6 @@ namespace vBergaaaBot.Builds
         public abstract void OnStart(VBergaaaBot vBergaaaBot);
         public abstract void OnFrame(VBergaaaBot vBergaaaBot);
         public abstract List<BuildOrderStep> MaxOutComp();
+        public abstract List<Manager> Managers { get; set; }
     }
 }

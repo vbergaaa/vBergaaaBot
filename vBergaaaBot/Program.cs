@@ -12,7 +12,7 @@ namespace vBergaaaBot {
         // Settings for single player mode.
         private static string mapName = RandomMap();
 
-        private static readonly Race opponentRace = Race.Random;
+        private static readonly Race opponentRace = Race.Zerg;
         private static readonly Difficulty opponentDifficulty = Difficulty.VeryHard;
 
         public static GameConnection gc;

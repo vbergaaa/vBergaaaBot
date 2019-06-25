@@ -4,17 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SC2APIProtocol;
+using vBergaaaBot.Managers;
 
 namespace vBergaaaBot.Builds
 {
     public class Roach_All_In : Build
     {
-
+        public override List<Manager> Managers { get; set; }
         public override string Name()
         {
             return "Roach_All_In";
         }
-
         public override List<BuildOrderStep> GetBuildOrder()
         {
             List<BuildOrderStep> bo = new List<BuildOrderStep>();
@@ -51,95 +51,21 @@ namespace vBergaaaBot.Builds
             return bo;
         }
 
-        private bool attack = false;
-        private Unit leadRoach = null;
-        private int gasCount = 0;
-        public override void OnFrame(VBergaaaBot vBergaaaBot)
+        public override void OnFrame(VBergaaaBot bot)
         {
-
-            if (gasCount < Controller.GetUnits(Units.EXTRACTOR, onlyCompleted: true).Count)
-            {
-                Controller.PrioritiseGas();
-                gasCount = Controller.GetUnits(Units.EXTRACTOR, onlyCompleted: true).Count;
-            }
-
-            // micro
-            if (Controller.frame % 20 == 0)
-                Controller.DistributeWorkers();
-
-
-            List<Unit> roaches = new List<Unit>();
-            roaches.AddRange(Controller.GetUnits(Units.ROACH));
-            List<Unit> lings = new List<Unit>();
-            lings.AddRange(Controller.GetUnits(Units.ZERGLING));
-
-            if (roaches.Count > 0 && !attack && leadRoach == null)
-            {
-                leadRoach = roaches[0];
-            }
-
-            if (roaches.Count > 0 && !attack && leadRoach != null)
-            {
-                Controller.Move(roaches, leadRoach.Pos);
-                Controller.Move(roaches, leadRoach.Pos);
-            }
-
-            if (roaches.Count >= 8 && !attack)
-            {
-                attack = true;
-            }
-
-            if (attack && Controller.frame % 15 == 0)
-            {
-                leadRoach = Controller.GetUnitByTag(leadRoach.Tag);
-                List<Unit> army = new List<Unit>();
-                army.AddRange(roaches);
-                army.AddRange(lings);
-                army.Remove(leadRoach);
-
-                List<Unit> groupies = new List<Unit>();
-                List<Unit> outCasts = new List<Unit>();
-
-                foreach (Unit unit in army)
-                {
-                    if (Controller.Get2dDistanceSquared(leadRoach.Pos, unit.Pos) < 25)
-                    {
-                        groupies.Add(unit);
-                    }
-                    else
-                    {
-                        outCasts.Add(unit);
-                    }
-                }
-
-                Controller.Attack(groupies, vBergaaaBot.MapInformation.EnemyStartLocations[0]);
-
-                if (leadRoach != null)
-                {
-                    Controller.Attack(outCasts, leadRoach.Pos);
-                }
-                else
-                {
-                    Controller.Attack(outCasts, vBergaaaBot.MapInformation.EnemyStartLocations[0]);
-                }
-            }
-
-            foreach (var queen in Controller.GetUnits(Units.QUEEN))
-            {
-                if (queen.Energy >= 25)
-                {
-                    Controller.Inject(queen);
-                }
-            }
-
-            //if (makeGas)
-            //    if (Controller.CanAfford(Units.EXTRACTOR))
-            //        Controller.Construct(Units.EXTRACTOR, vBergaaaBot.MapInformation.StartLocation.VespeneGeysers[0].Location);
+            foreach (var manager in Managers)
+                manager.OnFrame(bot);
         }
         
-        public override void OnStart(VBergaaaBot vBergaaaBot)
+        public override void OnStart(VBergaaaBot bot)
         {
-            // load up managers?
+            // load up managers
+            Managers = new List<Manager>();
+            Managers.Add(new GeneralBaseManager());
+            Managers.Add(new MacroQueenManager());
+            Managers.Add(new AttackManager(16));
+            Managers.Add(new ScoutManager());
+            //Managers.Add(new MacroQueenManager());
         }
 
 

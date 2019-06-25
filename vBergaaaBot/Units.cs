@@ -638,7 +638,6 @@ namespace vBergaaaBot {
             MOTHERSHIP,
             MUTALISK,
             PHOENIX,
-            QUEEN,
             QUEEN_BURROWED,
             RAVEN,
             REAPER,
