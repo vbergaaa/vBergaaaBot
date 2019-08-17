@@ -3,37 +3,31 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using vBergaaaBot;
 
 namespace vBergaaaBot.Helpers
 {
     public class TrainHelper
     {
-        public static List<TrainStep> TrainSteps = GetTrainSteps();
+        public static Dictionary<uint, HashSet<uint>> TrainSteps = GetTrainSteps();
 
-        private static List<TrainStep> GetTrainSteps()
+        private static Dictionary<uint, HashSet<uint>> GetTrainSteps()
         {
-            List<TrainStep> steps = new List<TrainStep>();
-            steps.Add(new TrainStep(Units.QUEEN, new HashSet<uint> { Units.HATCHERY, Units.LAIR, Units.HIVE }));
-            // add other units here if we start other races.
+            Dictionary<uint, HashSet<uint>> steps = new Dictionary<uint, HashSet<uint>>();
+            steps.Add(Units.QUEEN, new HashSet<uint> { Units.HATCHERY, Units.LAIR, Units.HIVE });
+
+            // add all terran in and protoss units as required
+
             return steps;
         }
-    }
 
-    public class TrainStep
-    {
-        public HashSet<uint> FromBuildings { get; set; }
-        public uint Unit { get; set; }
-        public TrainStep(uint to, uint from)
+        public static HashSet<uint> GetTrainingBuildingTypes(uint unitType)
         {
-            HashSet<uint> buildings = new HashSet<uint> { from };
-            FromBuildings = buildings;
-            Unit = to;
-        }
-        public TrainStep(uint to, HashSet<uint> from)
-        {
-            FromBuildings = from;
-            Unit = to;
+            if (TrainSteps.ContainsKey(unitType))
+                return TrainSteps[unitType];
+
+            // log error if cant find unit
+            Logger.Error("Unable to find train step for {0} - Type: {1}.", VBot.Bot.Data.Units[(int)unitType].Name, unitType);
+            return new HashSet<uint> { 0 };
         }
     }
 }

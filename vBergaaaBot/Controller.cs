@@ -1,625 +1,326 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
-using System.Numerics;
-using System.Security.Cryptography;
-using System.Threading;
+using vBergaaaBot.Helpers;
+using vBergaaaBot.Map;
 using SC2APIProtocol;
 using Action = SC2APIProtocol.Action;
-// ReSharper disable MemberCanBePrivate.Global
 
 namespace vBergaaaBot {
     public static class Controller {
-        //editable
-        private static readonly int frameDelay = 0; //too fast? increase this to e.g. 20
-        private static readonly bool realTime = true; // change this to watch the game at the speed of a player
-        private static readonly Stopwatch stopwatch = new Stopwatch();
-        private static long milliseconds;
-
-        //don't edit
-        private static readonly List<Action> actions = new List<Action>();
-        private static readonly Random random = new Random();
-        private const double FRAMES_PER_SECOND = 22.4;
-
-        public static ResponseGameInfo gameInfo;
-        public static ResponseData gameData;
-        public static ResponseObservation obs;
-        public static ulong frame;
-        public static uint currentSupply;
-        public static uint maxSupply;
-        public static uint minerals;
-        public static uint vespene;
-
-       
-        public static readonly List<string> chatLog = new List<string>();
-
-        public static void Pause() {
-            Console.WriteLine("Press any key to continue...");
-            while (Console.ReadKey().Key != ConsoleKey.Enter) {
-                //do nothing
-            }
-        }
-
-        public static ulong SecsToFrames(int seconds) {
-            return (ulong) (FRAMES_PER_SECOND * seconds);
-        }
 
 
-        public static List<Action> CloseFrame() {
-            int delay = 16 - (int)(stopwatch.ElapsedMilliseconds - milliseconds); // 16 = 23 ms/f (fastest) - 7 ms to process the timer
-            if (realTime && delay>0)
-            {
-                Thread.Sleep(delay);
-            }
-            return actions;
-        }
-
-
-        public static void OpenFrame() {
-            if (gameInfo == null || gameData == null || obs == null) {
-                if (gameInfo == null)
-                    Logger.Info("GameInfo is null! The application will terminate.");
-                else if (gameData == null)
-                    Logger.Info("GameData is null! The application will terminate.");
-                else
-                    Logger.Info("ResponseObservation is null! The application will terminate.");
-                Pause();
-                Environment.Exit(0);
-            }
-
-            actions.Clear();
-            obs = VBergaaaBot.Bot.Observation;
-
-            foreach (var chat in obs.Chat) 
-                chatLog.Add(chat.Message);
-
-            frame = obs.Observation.GameLoop;
-            currentSupply = obs.Observation.PlayerCommon.FoodUsed;
-            maxSupply = obs.Observation.PlayerCommon.FoodCap;
-            minerals = obs.Observation.PlayerCommon.Minerals;
-            vespene = obs.Observation.PlayerCommon.Vespene;
-            
-
-            //initialization
-            if (frame == 0) {
-                if (realTime)
-                    stopwatch.Start();
-                var resourceCenters = GetUnits(Units.ResourceCenters);
-                if (resourceCenters.Count > 0) {
-                    var rcPosition = resourceCenters[0].position;
-                }
-            }
-
-            if (frameDelay > 0)
-                Thread.Sleep(frameDelay);
-
-            if (realTime)
-                milliseconds = stopwatch.ElapsedMilliseconds;
-        }
-
-
-        public static string GetUnitName(uint unitType) {
-            return gameData.Units[(int) unitType].Name;
-        }
-
-        public static string GetUpgradeName(int upgradeId)
+        /// <summary>
+        ///     Checks if there is enough minerals and gas to build a unit or structure.
+        /// </summary>
+        /// <param name="unitType">the unit type of the desired unit</param>
+        /// <returns>true if resources are available, false otherwise</returns>
+        public static bool CanAffordUnit(uint unitType)
         {
-            return gameData.Upgrades[upgradeId].Name;
-        }
-
-        public static uint GetUpgradeAbilityId(int upgradeId)
-        {
-            return gameData.Upgrades[upgradeId].AbilityId;
-        }
-
-        public static void AddAction(Action action) {
-            actions.Add(action);
-        }
-
-        public static int GetActionsCount()
-        {
-            return actions.Count;
-        }
-
-        public static void Chat(string message, bool team = false) {
-            var actionChat = new ActionChat();
-            actionChat.Channel = team ? ActionChat.Types.Channel.Team : ActionChat.Types.Channel.Broadcast;
-            actionChat.Message = message;
-
-            var action = new Action();
-            action.ActionChat = actionChat;
-            AddAction(action);
-        }
-
-        public static void Inject(Unit queen)
-        {
-            List<Unit> bases = new List<Unit>();
-            foreach (Unit rc in GetUnits(Units.ResourceCenters))
-            {
-                bases.Add(rc);
-            }
-            //var action = new ActionRawUnitCommand();
-            //action.AbilityId = Abilities.EFFECT_INJECTLARVA;
-            //action.TargetUnitTag = GetNearestTag(queen.Pos, bases);
-            //action.UnitTags.Add(queen.tag);
-            //AddAction(action);
-            var action = CreateRawUnitCommand(Abilities.EFFECT_INJECTLARVA);
-            action.ActionRaw.UnitCommand.TargetUnitTag = GetNearestTag(queen.Pos, bases);
-            action.ActionRaw.UnitCommand.UnitTags.Add(queen.tag);
-            AddAction(action);
-        }
-
-        public static void Attack(List<Unit> units, Point2D target)
-        {
-            var action = CreateRawUnitCommand(Abilities.ATTACK);
-            action.ActionRaw.UnitCommand.TargetWorldSpacePos = target;
-            foreach (var unit in units)
-                action.ActionRaw.UnitCommand.UnitTags.Add(unit.tag);
-            AddAction(action);
-        }
-
-        public static void Attack(Unit unit, Point2D target)
-        {
-            var action = CreateRawUnitCommand(Abilities.ATTACK);
-            action.ActionRaw.UnitCommand.TargetWorldSpacePos = target;
-            action.ActionRaw.UnitCommand.UnitTags.Add(unit.tag);
-            AddAction(action);
-        }
-
-        public static void Move(List<Unit> units, Point2D target)
-        {
-            var action = CreateRawUnitCommand(Abilities.MOVE);
-            action.ActionRaw.UnitCommand.TargetWorldSpacePos = target;
-
-            foreach (var unit in units)
-                action.ActionRaw.UnitCommand.UnitTags.Add(unit.tag);
-            AddAction(action);
-        }
-
-        public static void Move(Unit unit, Point2D target)
-        {
-            var action = CreateRawUnitCommand(Abilities.MOVE);
-            action.ActionRaw.UnitCommand.TargetWorldSpacePos = target;
-            action.ActionRaw.UnitCommand.UnitTags.Add(unit.tag);
-            AddAction(action);
-        }
-
-        public static void Upgrade(int ability, Unit unit)
-        {
-            var action = CreateRawUnitCommand(ability);
-            action.ActionRaw.UnitCommand.UnitTags.Add(unit.tag);
-            AddAction(action);
-            Logger.Info("started upgradeing: {0}",ability);
-        }
-
-        public static int GetTotalCount(uint unitType) {
-            var pendingCount = GetPendingCount(unitType, inConstruction: false);
-            var constructionCount = GetUnits(unitType).Count;
-            return pendingCount + constructionCount;
-        }
-
-        public static int GetPendingCount(uint unitType, bool inConstruction=true) {
-            var workers = GetUnits(Units.Workers);
-            var abilityID = Abilities.GetTrainUnitId(unitType);
-            var cocoons = GetUnits(Units.EGG);
-            var production = GetUnits(Units.Production);
-
-            var counter = 0;
-            
-            //count workers that have been sent to build this structure
-            foreach (var worker in workers) {
-                if (worker.order.AbilityId == abilityID)
-                    counter += 1;
-            }
-
-            foreach (var building in production)
-            {
-                if (building.order.AbilityId == abilityID)
-                    counter++;
-            }
-
-            //count buildings that are already in construction
-            if (inConstruction) {  
-                foreach (var unit in GetUnits(unitType))
-                    if (unit.buildProgress < 1)
-                        counter += 1;
-            }
-
-            //count larva morphing into this structure
-            foreach (var cocoon in cocoons)
-            {
-                if (cocoon.order.AbilityId == abilityID)
-                    counter++;
-            }
-
-            return counter;
-        }
-
-        public static List<Unit> GetUnits(HashSet<uint> hashset, Alliance alliance = Alliance.Self, bool onlyCompleted = false, bool onlyVisible = false, bool onlyIdle = false)
-        {
-            //ideally this should be cached in the future and cleared at each new frame
-            var count = 0;
-            var units = new List<Unit>();
-            foreach (SC2APIProtocol.Unit unit in obs.Observation.RawData.Units)
-            {
-                count++;
-                if (hashset.Contains(unit.UnitType) && unit.Alliance == alliance)
-                {
-
-                    if (onlyCompleted && unit.BuildProgress < 1)
-                        continue;
-
-                    if (onlyVisible && (unit.DisplayType != DisplayType.Visible))
-                        continue;
-
-                    if (onlyIdle && (unit.Orders.Count != 0))
-                        continue;
-
-                    units.Add(new Unit(unit));
-
-                }
-            }
-            return units;
-        }
-        public static List<Unit> GetNeutralUnits(HashSet<uint> hashset, Alliance alliance = Alliance.Self, bool onlyCompleted = false, bool onlyVisible = false)
-        {
-            //ideally this should be cached in the future and cleared at each new frame
-            var count = 0;
-            var units = new List<Unit>();
-            foreach (SC2APIProtocol.Unit unit in obs.Observation.RawData.Units)
-            {
-                count++;
-                if (hashset.Contains(unit.UnitType) && unit.Alliance == Alliance.Neutral)
-                {
-                    units.Add(new Unit(unit));
-                }
-            }
-            return units;
-        }
-
-        public static List<Unit> GetNeutralUnits(uint unitCode, Alliance alliance = Alliance.Self, bool onlyCompleted = false, bool onlyVisible = false)
-        {
-            //ideally this should be cached in the future and cleared at each new frame
-            var count = 0;
-            var units = new List<Unit>();
-            foreach (SC2APIProtocol.Unit unit in obs.Observation.RawData.Units)
-            {
-                count++;
-                if (unitCode == unit.UnitType && unit.Alliance == Alliance.Neutral)
-                {
-                    units.Add(new Unit(unit));
-                }
-            }
-            return units;
-        }
-
-        public static List<Unit> GetUnits(uint unitType, Alliance alliance=Alliance.Self, bool onlyCompleted=false, bool onlyVisible=false, bool onlyIdle=false) {
-            //ideally this should be cached in the future and cleared at each new frame
-            var units = obs.Observation.RawData.Units.Where(u => u.UnitType == unitType && u.Alliance == alliance);
-
-            if (onlyVisible)
-                units = units.Where(u => u.DisplayType == DisplayType.Visible);
-
-            if (onlyCompleted)
-                units = units.Where(u => u.BuildProgress == 1);
-
-            if (onlyIdle)
-                units = units.Where(u => u.Orders.Count == 0);
-
-            return units.Select(u=>new Unit(u)).ToList();
-        }
-
-        public static bool CanAfford(uint unitType)
-        {
-            var unitData = gameData.Units[(int)unitType];
-            if (Units.Zerg.Contains(unitType) && !Units.Structures.Contains(unitType))
-            {
-                if (unitType != 105) { 
-                    return ((minerals >= unitData.MineralCost) && (vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= maxSupply - currentSupply && GetUnits(Units.LARVA).Count > 0));
-                }
-                else // edge case were unit is a zergling (gamedata stats are wrong) 
-                {
-                    return ((minerals >= 50) && (vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= maxSupply - currentSupply && GetUnits(Units.LARVA).Count > 0));
-                }
-            }
-            return (minerals >= unitData.MineralCost) && (vespene >= unitData.VespeneCost) && (unitData.FoodRequired <= maxSupply - currentSupply);
-           
-        }
-
-
-        public static bool CanMake(uint unitType)
-        {
-            throw new NotImplementedException();
-        }
-
-        public static bool MeetsTechRequirements(uint unitType)
-        {
-            // possiblity here if tech requirement is hatchery but we have lair to return false. investigate if encountered.
-            if (gameData.Units[(int)unitType].TechRequirement == 0)
-                return true;
-            if (GetUnits(gameData.Units[(int)unitType].TechRequirement, onlyCompleted: true).Count > 0)
-                return true;
-            else
-                return false;            
-        }
-
-        public static bool IsAlive(ulong tag)
-        {
-            foreach (SC2APIProtocol.Unit unit in obs.Observation.RawData.Units)
-            {
-                if (unit.Tag == tag)
+            UnitTypeData unitData = VBot.Bot.Data.Units[(int)unitType];
+            if (Units.ZergStructures.Contains(unitType))
+                if (VBot.Bot.Minerals() >= (unitData.MineralCost - 50) && VBot.Bot.Gas() >= unitData.VespeneCost)
                     return true;
-            }
-            return false;
-        }
-        public static bool IsAlive()
-        {
+            if (VBot.Bot.Minerals() >= unitData.MineralCost && VBot.Bot.Gas() >= unitData.VespeneCost)
+                return true;
             return false;
         }
 
-        public static Unit GetUnitByTag(ulong tag)
+        /// <summary>
+        ///     Checks if there is enough minerals and gas to research an upgrade.
+        /// </summary>
+        /// <param name="upgradeId">the unit type of the desired upgrade</param>
+        /// <returns>true if resources are available, false otherwise</returns>
+        public static bool CanAffordUpgrade(int upgradeId)
         {
-            foreach (SC2APIProtocol.Unit unit in obs.Observation.RawData.Units)
-            {
-                if (unit.Tag == tag)
-                    return new Unit(unit);
-            }
-            return null;
-
+            UpgradeData unitData = VBot.Bot.Data.Upgrades[upgradeId];
+            if (VBot.Bot.Minerals() >= unitData.MineralCost && VBot.Bot.Gas() >= unitData.VespeneCost)
+                return true;
+            return false;
         }
 
-        public static bool CanAffordUpgrade(int upgrade) {
-            var unitData = gameData.Upgrades[(int)upgrade];
-            return (minerals >= unitData.MineralCost) && (vespene >= unitData.VespeneCost);
+        /// <summary>
+        ///     Checks if there is enough supply to build a unit.
+        /// </summary>
+        /// <param name="unitType">the unit type of the desired unit</param>
+        /// <returns>true if supply is available, false otherwise</returns>
+        public static bool CheckSupply(uint unitType)
+        {
+            UnitTypeData unitData = VBot.Bot.Data.Units[(int)unitType];
+            if (VBot.Bot.AvailableSupply() >= unitData.FoodRequired)
+                return true;
+            return false;
         }
 
-        public static bool CanConstruct(uint unitType) {
-            //is it a structure?
-            if (Units.Structures.Contains(unitType)) {
-                //we need worker for every structure
-                if (GetUnits(Units.Workers).Count == 0) return false;
+        /// <summary>
+        /// Checks if it's possible to make a unit
+        /// </summary>
+        ///  <param name="unitType">the unit type of the desired unit</param>
+        /// <returns>true if possible to make, false otherwise</returns>
+        public static bool CanMakeUnit(uint unitType)
+        {
+            if (!CheckUnitTechRequirements(unitType))
+                return false;
 
-                //we need an RC for any structure
-                var resourceCenters = GetUnits(Units.ResourceCenters, onlyCompleted:true);
-                if (resourceCenters.Count == 0) return false;
-                
-                if ((unitType == Units.COMMAND_CENTER) || (unitType == Units.SUPPLY_DEPOT))
-                    return CanAfford(unitType);
-                
-                //we need supply depots for the following structures
-                var depots = GetUnits(Units.SupplyDepots, onlyCompleted:true);
-                if (depots.Count == 0) return false;
-                
-                if (unitType == Units.BARRACKS)
-                    return CanAfford(unitType);
-            }
-            
-            //it's an actual unit
-            else {                
-                //do we have enough supply?
-                var requiredSupply = Controller.gameData.Units[(int) unitType].FoodRequired;
-                if (requiredSupply > (maxSupply - currentSupply))
+            if (!CheckSupply(unitType))
+                return false;
+
+            if (!CanAffordUnit(unitType))
+                return false;
+
+            if (MorphHelper.MorpSteps.ContainsKey(unitType))
+                return PreMorphUnitAvailable(unitType);
+
+            // check building is free to build
+            if (TrainHelper.TrainSteps.ContainsKey(unitType))
+                return TrainingBuildingAvailable(unitType);
+            return true;
+        }
+
+        /// <summary>
+        /// Checks if it's possible to make an upgrade
+        /// </summary>
+        ///  <param name="upgradeId">the upgradeType of the desired upgrade</param>
+        /// <returns>true if possible to make, false otherwise</returns>
+        public static bool CanMakeUpgrade(int upgradeId)
+        {
+            if (!CheckUpgradeTechRequirements(upgradeId))
+                return false;
+
+            if (!CanAffordUpgrade(upgradeId))
+                return false;
+
+            // check building is free to build
+            if (UpgradeHelper.UpgradeSteps.ContainsKey(upgradeId))
+                return TrainingBuildingAvailable(upgradeId);
+            return true;
+        }
+
+        /// <summary>
+        ///     Checks if there the tech requirements are met to make a unit.
+        /// </summary>
+        /// <param name="unitType">the unit type of the desired unit</param>
+        /// <returns>true if the tech is build, false otherwise</returns>
+        public static bool CheckUnitTechRequirements(uint unitType)
+        {
+            // this might make problems for something like spire/greaterspire
+            if (VBot.Bot.Data.Units[(int)unitType].TechRequirement == 0)
+                return true;
+
+            if (GetCompletedCount(VBot.Bot.Data.Units[(int)unitType].TechRequirement) > 0)
+                return true;
+            return false;
+        }
+        
+        /// <summary>
+        ///     Checks if there the tech requirements are met to make an upgrade.
+        /// </summary>
+        /// <param name="upgradeId">the unit type of the desired unit</param>
+        /// <returns>true if the tech is built or non-existant, false otherwise</returns>
+        public static bool CheckUpgradeTechRequirements(int upgradeId)
+        {
+            if (UpgradeHelper.GetUpgradeTechBuildingReq(upgradeId) == 0 &&
+                UpgradeHelper.GetUpgradeTechUpgradeReq(upgradeId) == 0)
+                return true;
+
+            if (UpgradeHelper.GetUpgradeTechUpgradeReq(upgradeId) != 0)
+                if (!CheckUpgrade(UpgradeHelper.GetUpgradeTechUpgradeReq(upgradeId), onlyCompleted: true))
                     return false;
+            if (UpgradeHelper.GetUpgradeTechBuildingReq(upgradeId) != 0)
+                if (GetCompletedCount(UpgradeHelper.GetUpgradeTechBuildingReq(upgradeId)) == 0)
+                    return false;
+            return true;
 
-                //do we construct the units from barracks? 
-                if (Units.FromBarracks.Contains(unitType)) {
-                    var barracks = GetUnits(Units.BARRACKS, onlyCompleted:true);
-                    if (barracks.Count == 0) return false;
-                }
-                                
+        }
+
+        /// <summary>
+        ///     Checks if there is a free unit to move to morph into a the desired unit
+        /// </summary>
+        /// <param name="unitType">the unit type of the desired unit</param>
+        /// <returns>true if there is a free unit, false otherwise</returns>
+        public static bool PreMorphUnitAvailable(uint unitType)
+        {
+            if (MorphHelper.MorpSteps.ContainsKey(unitType))
+            {
+                if (null != GetAvailableAgent(MorphHelper.GetPreMorphType(unitType)))
+                    return true;
+                return false;
             }
-            
-            return CanAfford(unitType);
+            else
+            {
+                Logger.Info("Calling Controller.PreMorphUnitAvailable() on a unit that isnt in morph list. Unit: {0}, Type: {1}",
+                    VBot.Bot.Data.Units[(int)unitType], unitType);
+                return false;
+            }
         }
 
-        public static Action CreateRawUnitCommand(int ability) {
-            var action = new Action();
-            action.ActionRaw = new ActionRaw();
-            action.ActionRaw.UnitCommand = new ActionRawUnitCommand();
-            action.ActionRaw.UnitCommand.AbilityId = ability;
-            return action;
+        /// <summary>
+        ///     Gets a free agent from the state manager.
+        /// </summary>
+        /// <param name="unitType">the unit type of the desired agent</param>
+        /// <returns>a free agent if one is available, null otherwise</returns>
+        public static Agent GetAvailableAgent(uint unitType)
+        {
+            HashSet<uint> hs = new HashSet<uint>
+            {
+                unitType
+            };
+            return VBot.Bot.StateManager.GetAvailableAgent(hs);
         }
 
-        public static bool CanPlace(uint unitType, Point2D targetPos) {
+        /// <summary>
+        ///     Gets a free agent from the state manager.
+        /// </summary>
+        /// <param name="unitType">the unit type of the desired agent</param>
+        /// <returns>a free agent if one is available, null otherwise</returns>
+        public static Agent GetAvailableAgent(HashSet<uint> unitType)
+        {
+            return VBot.Bot.StateManager.GetAvailableAgent(unitType);
+        }
+
+        /// <summary>
+        /// Get a count of how many units are made and in production
+        /// </summary>
+        /// <param name="unitType">the desired unit to count</param>
+        /// <returns>the total count of a unit</returns>
+        public static int GetTotalCount(uint unitType)
+        {
+            return VBot.Bot.StateManager.GetCount(unitType);
+        }
+
+        /// <summary>
+        /// Get a count of only how many units are made
+        /// </summary>
+        /// <param name="unitType">the desired unit to count</param>
+        /// <returns>the current count of a unit</returns>
+        public static int GetCompletedCount(uint unitType)
+        {
+            return VBot.Bot.StateManager.GetCompletedCount(unitType);
+        }
+
+        /// <summary>
+        /// Get a count of only how many units are made
+        /// </summary>
+        /// <param name="unitTypes">the desired units to be counted</param>
+        /// <returns>the current count of the selected units</returns>
+        public static int GetCompletedCount(HashSet<uint> unitTypes)
+        {
+            return VBot.Bot.StateManager.GetCompletedCount(unitTypes);
+        }
+
+        /// <summary>
+        /// Gets a list of all the agents that match the unitType 
+        /// </summary>
+        /// <param name="unitType">type of desired unit</param>
+        /// <returns>a list of all the agents that match the unitType</returns>
+        public static List<Agent> GetAgents(uint unitType)
+        {
+            HashSet<uint> list = new HashSet<uint>
+            {
+                unitType
+            };
+            return VBot.Bot.StateManager.GetAgents(list);
+        }
+
+        /// <summary>
+        /// Gets a list of all the agents that match the unitTypes 
+        /// </summary>
+        /// <param name="unitTypes">a hashset of the type of the desired units</param>
+        /// <returns>a list of all the agents that match the unitTypes</returns>
+        public static List<Agent> GetAgents(HashSet<uint> unitTypes)
+        {
+            return VBot.Bot.StateManager.GetAgents(unitTypes);
+        }
+
+        /// <summary>
+        /// Gets desired SC2APIProtocol.Units from the Bots Observation
+        /// </summary>
+        /// <param name="unitTypes">a hashset of the desired unittypes</param>
+        /// <returns>a list of SC2APIProtocol.Units that match the desired unitTypes</returns>
+        public static List<Unit> GetUnits(HashSet<uint> unitTypes)
+        {
+            return VBot.Bot.Observation.Observation.RawData.Units.Where(u => unitTypes.Contains(u.UnitType)).ToList();
+        }
+
+        /// <summary>
+        /// Creates a Request to send to through the API to see a build can be placed in this location
+        /// </summary>
+        /// <param name="unitType">type of the building you wish to build</param>
+        /// <param name="targetPos">desired location</param>
+        /// <returns>true if it is possible to build here, false otherwise</returns>
+        public static bool CanPlace(uint unitType, Point2D targetPos)
+        {
             //Note: this is a blocking call! Use it sparingly, or you will slow down your execution significantly!
-            var abilityID = Abilities.GetTrainUnitId(unitType);
-            
-            RequestQueryBuildingPlacement queryBuildingPlacement = new RequestQueryBuildingPlacement();
-            queryBuildingPlacement.AbilityId = abilityID;
-            queryBuildingPlacement.TargetPos = targetPos;
-            
-            Request requestQuery = new Request();
-            requestQuery.Query = new RequestQuery();
+            var abilityID = Units.GetAbilityId(unitType);
+
+            RequestQueryBuildingPlacement queryBuildingPlacement = new RequestQueryBuildingPlacement
+            {
+                AbilityId = (int)abilityID,
+                TargetPos = targetPos
+            };
+
+            Request requestQuery = new Request
+            {
+                Query = new RequestQuery()
+            };
             requestQuery.Query.Placements.Add(queryBuildingPlacement);
 
             var result = Program.gc.SendQuery(requestQuery.Query);
-            if (result.Result.Placements.Count > 0)
+            if (result.Result.Placements.Count() > 0)
                 return (result.Result.Placements[0].Result == ActionResult.Success);
             return false;
         }
 
-        public static void DistributeWorkers() {            
-            var workers = GetUnits(Units.Workers);
-            List<Unit> idleWorkers = new List<Unit>();
-            foreach (var worker in workers) {
-                if (worker.order.AbilityId != 0) continue;
-                idleWorkers.Add(worker);
-            }
-            
-            if (idleWorkers.Count > 0) {
-                var resourceCenters = GetUnits(Units.ResourceCenters, onlyCompleted:true);
-                var mineralFields = GetUnits(Units.MineralFields, onlyVisible: true, alliance:Alliance.Neutral);
-                
-                foreach (var rc in resourceCenters) {
-                    //get one of the closer mineral fields
-                    var mf = GetFirstInRange(rc.Pos, mineralFields, 7);
-                    if (mf == null) continue;
-                    
-                    //only one at a time          
-                    idleWorkers[0].Smart(mf);                                        
-                    return;
-                }
-                //nothing to be done
-                return;
-            }
-            else {
-                //let's see if we can distribute between bases                
-                var resourceCenters = GetUnits(Units.ResourceCenters, onlyCompleted:true);
-                var geysers = GetUnits(Units.EXTRACTOR, onlyCompleted: true);
-                Unit transferFrom = null;
-                Unit transferTo = null;
-                foreach (var rc in resourceCenters)
-                {
-                    if (rc.assignedWorkers <= rc.idealWorkers)
-                        transferTo = rc;
-                    else
-                        transferFrom = rc;
-                }
-                foreach (var gas in geysers)
-                {
-                    if (gas.assignedWorkers <= gas.idealWorkers)
-                        transferTo = gas;
-                    else
-                        transferFrom = gas;
-                }
-
-                if ((transferFrom != null) && (transferTo != null)) {
-
-                    var mineralFields = GetUnits(Units.MineralFields, onlyVisible: true, alliance:Alliance.Neutral);
-                    
-                    var sqrDistance = 7 * 7;
-                    foreach (var worker in workers) {
-                        if (worker.order.AbilityId != Abilities.GATHER_MINERALS && worker.order.AbilityId != Abilities.HARVEST_GATHER_DRONE) continue;
-                        if (Vector3.DistanceSquared(worker.position, transferFrom.position) > sqrDistance) continue;
-                                                
-                        var mf = GetFirstInRange(transferTo.Pos, mineralFields, 7);
-                        if (mf == null) continue;
-                    
-                        //only one at a time
-                        if (transferTo.unitType == Units.EXTRACTOR)
-                        {
-                            worker.Smart(transferTo);
-                        }
-                        else
-                        {
-                            worker.Smart(mf);
-                        }               
-                        return;
-                    }
-                }
-                List<Unit> availableResources = new List<Unit>();
-                foreach (var rc in resourceCenters)
-                {
-                    //foreach ()
-                }
-            }
-
-            
-        }
-
-        public static void PrioritiseGas()
+        /// <summary>
+        /// Gets a worker agent with a bust status of false
+        /// </summary>
+        /// <returns>An available worker, null if no workers available</returns>
+        public static Agent GetWorker()
         {
-            var availableWorkers = GetUnits(Units.Workers).Where(u=>u.orders[0].AbilityId == 1183).ToList();
-            var geysers = GetUnits(Units.EXTRACTOR, onlyCompleted: true);
-            foreach (var g in geysers)
-            {
-                int numberToTransfer;
-                if (g.assignedWorkers < g.idealWorkers)
-                {
-                    numberToTransfer = g.idealWorkers - g.assignedWorkers;
-                    if (availableWorkers.Count() >= numberToTransfer)
-                    {
-                        for (int i = 0; i < numberToTransfer; i++)
-                            availableWorkers[i].Smart(g);
-                    }
-                }
-            }
+            return GetAvailableAgent(Units.Workers);
         }
 
-        public static Unit GetAvailableWorker()
+        /// <summary>
+        /// Function that executes a worker to build a structure at a location in the main base
+        /// </summary>
+        /// <param name="worker">An agent that has the ability to construct the building, typically a worker</param>
+        /// <param name="BuildingType">The unit id of the desired building</param>
+        public static void BuildStructure(Agent worker, uint BuildingType)
         {
-            var workers = GetUnits(Units.Workers);
-            foreach (var worker in workers)
-            {
-                if (worker.order.AbilityId != Abilities.GATHER_MINERALS && worker.order.AbilityId != Abilities.HARVEST_GATHER_DRONE)
-                    continue;
-                return worker;
-            }
-
-            return null;
+            if (Units.GasGeysers.Contains(BuildingType))
+                worker.Order(Units.GetAbilityId(BuildingType), FindGasPlacement());
+            else
+                worker.Order(Units.GetAbilityId(BuildingType), FindPlacement(BuildingType));
         }
 
-        public static bool IsInRange(Point2D targetPosition, List<Unit> units, float maxDistance) {
-            return (GetFirstInRange(targetPosition, units, maxDistance) != null);
-        }
-        public static bool IsInRange(Point2D targetPosition, List<Point2D> patches, float maxDistance) {
-            return (GetFirstInRange(targetPosition, patches, maxDistance) != null);
-        }
-        
-        public static Unit GetFirstInRange(Point2D targetPosition, List<Unit> units, float maxDistance) {
-            //squared distance is faster to calculate
-            var maxDistanceSqr = maxDistance * maxDistance;
-            foreach (var unit in units) {
-                if ( Get2dDistanceSquared(targetPosition, unit.Pos) <= maxDistanceSqr)
-                    return unit;
-            }
-            return null;
-        }
-        public static Point2D GetFirstInRange(Point2D targetPosition, List<Point2D> patches, float maxDistance) {
-            //squared distance is faster to calculate
-            var maxDistanceSqr = maxDistance * maxDistance;
-            foreach (var patch in patches) {
-                if ( Get2dDistanceSquared(targetPosition, patch) <= maxDistanceSqr)
-                    return patch;
-            }
-            return null;
-        }
-
-        public static ulong Construct(uint unitType) {
-            Entity.BaseLocation startLocation = VBergaaaBot.Bot.MapInformation.StartLocation;
-            Point2D startingSpot = startLocation.Location;
-            Point2D constructionSpot = null;
+        /// <summary>
+        /// A function that gets a valid location for a structure of the type specified in the main base
+        /// </summary>
+        /// <param name="unitType">The desired building type</param>
+        /// <returns>a valid location of where the building will fit, Exception if placement cannot be found</returns>
+        public static Point2D FindPlacement(uint unitType)
+        {
+            BaseLocation startLocation = VBot.Bot.Map.StartLocation;
+            Point startingSpot = startLocation.Location;
+            Point2D constructionSpot;
             const int radius = 12;
-            var abilityID = Abilities.GetTrainUnitId(unitType);
-            var constructAction = CreateRawUnitCommand(abilityID);
 
-            var worker = GetAvailableWorker();
-            if (worker == null)
+            if (Units.ResourceCenters.Contains(unitType))
             {
-                Logger.Error("Unable to find worker to construct: {0}", GetUnitName(unitType));
-                return 1;
+                Point p = VBot.Bot.Map.GetExpansionLocation();
+                return new Point2D { X = p.X, Y = p.Y };
             }
-
-            // if gas geyser
-            if (Units.GasGeysers.Contains(unitType))
-            {
-                ulong constructionLocation = 0;
-                foreach (var rc in GetUnits(Units.ResourceCenters,onlyCompleted:true))
-                    foreach (var gas in GetUnits(Units.GasGeysers, alliance: Alliance.Neutral))
-                        if (gas.unitType != Units.EXTRACTOR && Get2dDistanceSquared(rc.Pos,gas.Pos) < 81)
-                            constructionLocation = gas.Tag;
-
-                if (constructionLocation != 0)
-                {
-                    constructAction.ActionRaw.UnitCommand.UnitTags.Add(worker.tag);
-                    constructAction.ActionRaw.UnitCommand.TargetUnitTag = constructionLocation;
-                    AddAction(constructAction);
-                    Logger.Info("Constructing: {0} @ geyser {1}", GetUnitName(unitType), constructionLocation);
-                    return worker.tag;
-                }
                 
-            }
             //trying to find a valid construction spot
-            
-            List<Point2D> mineralFields = new List<Point2D>();
-            foreach (Entity.MineralField mf in startLocation.MineralPatches)
+            List<Point> mineralFields = new List<Point>();
+            foreach (MineralField mf in startLocation.MineralPatches)
                 mineralFields.Add(mf.Location);
 
+            int counter = 0;
             while (true)
             {
                 constructionSpot = new Point2D();
+                Random random = new Random();
                 constructionSpot.X = startingSpot.X + random.Next(-radius, radius + 1);
                 constructionSpot.Y = startingSpot.Y + random.Next(-radius, radius + 1);
 
@@ -628,56 +329,350 @@ namespace vBergaaaBot {
 
                 //check if the building fits
                 if (!CanPlace(unitType, constructionSpot)) continue;
-
+                counter++;
+                if (counter > 50)
+                {
+                    Logger.Error("unable to place Building: {0}", VBot.Bot.Data.Units[(int)unitType].Name);
+                    return null;
+                }
+                
                 //ok, we found a spot
                 break;
             }
-
-            
-            constructAction.ActionRaw.UnitCommand.UnitTags.Add(worker.tag);
-            constructAction.ActionRaw.UnitCommand.TargetWorldSpacePos = constructionSpot;
-            AddAction(constructAction);
-
-            Logger.Info("Constructing: {0} @ {1} / {2}", GetUnitName(unitType), constructionSpot.X, constructionSpot.Y);
-            return worker.tag;
+            return constructionSpot;
         }
 
-        public static ulong Construct(uint unitType, Point2D position)
+        /// <summary>
+        /// A function that gets a valid location for a structure of the type specified in the main base
+        /// </summary>
+        /// <param name="unitType">the type for a gas geyser</param>
+        /// <returns>the tag of the unbuild geyser to build a gas on, 0 if none are found</returns>
+        public static ulong FindGasPlacement()
         {
-            var worker = GetAvailableWorker();
-            if (worker == null)
-            {
-                Logger.Error("Unable to find worker to construct: {0}", GetUnitName(unitType));
-                return 1;
-            }
-            var abilityID = Abilities.GetTrainUnitId(unitType);
-            var constructAction = CreateRawUnitCommand(abilityID);
-            constructAction.ActionRaw.UnitCommand.UnitTags.Add(worker.tag);
-            constructAction.ActionRaw.UnitCommand.TargetWorldSpacePos = position;
-            AddAction(constructAction);
-            Logger.Info("Constructing: {0} @ {1} / {2}", GetUnitName(unitType), position.X, position.Y);
-            return worker.Tag;
+            ulong constructionTag = 0;
+            foreach (var rc in GetAgents(Units.ResourceCenters))
+                foreach (var gas in GetUnits(Units.GasGeysers))
+                    if (gas.UnitType != Units.EXTRACTOR && DistanceBetweenSq(rc.Unit.Pos, gas.Pos) < 81)
+                        constructionTag = gas.Tag;
+            return constructionTag;
+
         }
 
-        public static ulong GetNearestTag(Point2D point, List<Unit> bases)
+        /// <summary>
+        /// This methods gets the square of the 2D distance between two points
+        /// </summary>
+        /// <param name="p1">location of first point</param>
+        /// <param name="p2">locatoin of second point</param>
+        /// <returns>the square of the distance between two point</returns>
+        public static float DistanceBetweenSq(Point2D p1, Point2D p2)
         {
-            float nearestDistance = 10000000;
-            ulong NearestTag = 0;
-            foreach (Unit rc in bases)
+            return (p1.X - p2.X) * (p1.X - p2.X) + (p1.Y - p2.Y) * (p1.Y - p2.Y);
+        }
+        /// <summary>
+        /// This methods gets the square of the 2D distance between two points
+        /// </summary>
+        /// <param name="p1">location of first point</param>
+        /// <param name="p2">locatoin of second point</param>
+        /// <returns>the square of the distance between two point</returns>
+        public static float DistanceBetweenSq(Point p1, Point2D p2)
+        {
+            return DistanceBetweenSq(new Point2D { X = p1.X, Y = p1.Y }, p2);
+        }
+        /// <summary>
+        /// This methods gets the square of the 2D distance between two points
+        /// </summary>
+        /// <param name="p1">location of first point</param>
+        /// <param name="p2">locatoin of second point</param>
+        /// <returns>the square of the distance between two point</returns>
+        public static float DistanceBetweenSq(Point2D p1, Point p2)
+        {
+            return DistanceBetweenSq(p2,p1);
+        }
+        /// <summary>
+        /// This methods gets the square of the 2D distance between two points
+        /// </summary>
+        /// <param name="p1">location of first point</param>
+        /// <param name="p2">locatoin of second point</param>
+        /// <returns>the square of the distance between two point</returns>
+        public static float DistanceBetweenSq(Point p1, Point p2)
+        {
+            return DistanceBetweenSq(new Point2D { X = p1.X, Y = p1.Y }, p2);
+        }
+
+        /// <summary>
+        /// Checks if a point is within a certain radius of a collection of points 
+        /// </summary>
+        /// <param name="point">point to check if it is in range of a collection</param>
+        /// <param name="patches">the collection of points to compare the first point to</param>
+        /// <param name="distance">the radius around the point to check if in range</param>
+        /// <returns>true if the point and a patch are within distance, false otherwise</returns>
+        public static bool IsInRange(Point2D point, List<Point> patches, float distance)
+        {
+            foreach (var mp in patches)
+                if (DistanceBetweenSq(mp, point) < distance * distance)
+                    return true;
+            return false;
+        }
+
+        /// <summary>
+        /// a function to check if there is an available building to train a unit
+        /// </summary>
+        /// <param name="unitType">desired unit to be trained</param>
+        /// <returns>true if an idle building is waiting, false otherwise</returns>
+        public static bool TrainingBuildingAvailable(uint unitType)
+        {
+            HashSet<uint> hs = TrainHelper.GetTrainingBuildingTypes(unitType);
+            if (VBot.Bot.StateManager.GetAvailableAgent(hs) != null)
+                return true;
+            return false;
+        }
+
+        /// <summary>
+        /// a function to check if there is an available building to research an upgrade
+        /// </summary>
+        /// <param name="upgradeId">desired upgrade to be researched</param>
+        /// <returns>true if an idle building is waiting, false otherwise</returns>
+        public static bool TrainingBuildingAvailable(int upgradeId)
+        {
+            HashSet<uint> hs = UpgradeHelper.GetUpgradeBuildingTypes(upgradeId);
+
+            if (VBot.Bot.StateManager.GetAvailableAgent(hs) != null)
+                return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Checks the StateManger to see if a agent still exist and returns it
+        /// </summary>
+        /// <param name="tag">the tag of the desired agent</param>
+        /// <returns>the agent if it exist, null otherwise</returns>
+        public static Agent GetAgentByTag(ulong tag)
+        {
+            return VBot.Bot.StateManager.GetAgentByTag(tag);
+        }
+
+        /// <summary>
+        /// Get a location to place a creep tumor, heading towards the enemy base
+        /// </summary>
+        /// <param name="startPoint">the location of the queen or tumor that spreads the creep. MUST BE A PATHABLE TILE</param>
+        /// <param name="range">how far from the startpoint it can spread to. </param>
+        /// <returns>a location that is valid for a tumor to be placed. Null if none can be found</returns>
+        public static Point2D GetTumorLocation(Point2D startPoint, int range)
+        {
+            return GetTumorLocation(startPoint, VBot.Bot.Map.EnemyStartLocations[0], range);
+        }
+        /// <summary>
+        /// Get a location to place a creep tumor
+        /// </summary>
+        /// <param name="startPoint">the location of the queen or tumor that spreads the creep. MUST BE A PATHABLE TILE</param>
+        /// <param name="towards">the direction of the desired creepspread</param>
+        /// <param name="range">how far from the startpoint it can spread to.</param>
+        /// <returns>a location that is valid for a tumor to be placed. Null if none can be found</returns>
+        public static Point2D GetTumorLocation(Point2D startPoint, Point2D towards, int range)
+        {
+            int[,] distances;
+            if (towards == VBot.Bot.Map.EnemyStartLocations[0])
+                distances = VBot.Bot.Map.DistancesToEnemy;
+            else
+                distances = VBot.Bot.Map.GenerateDistances(towards);
+
+            Point2D closestPoint = null;
+            int minDist = 100000000;
+
+            for (int i = -range; i <= range; i++)
             {
-                var tempDist = MapInformation.GetDistance2D(rc.Pos, point);
-                if (tempDist < nearestDistance)
+                for (int j = -range; j < range+1; j++)
                 {
-                    nearestDistance = tempDist;
-                    NearestTag = rc.Tag;
+                    // check if it is creep
+                    var creepMap = VBot.Bot.Observation.Observation.RawData.MapState.Creep;
+                    Point2D testLoc = new Point2D { X = startPoint.X + i, Y = startPoint.Y + j };
+                    if (!Sc2Util.ReadTile(creepMap, testLoc))
+                        continue;
+
+                    if (distances[(int)testLoc.X,(int)testLoc.Y] < minDist)
+                    {
+                        minDist = distances[(int)testLoc.X, (int)testLoc.Y];
+                        closestPoint = testLoc;
+                    }
                 }
             }
-            return NearestTag;
+            if (closestPoint == null)
+                return null;
+            return closestPoint;
+                
         }
 
-        public static float Get2dDistanceSquared(Point2D point1, Point2D point2)
+        /// <summary>
+        /// Checks if an upgrade is completed or being researched
+        /// </summary>
+        /// <param name="upgradeId">id of the desired upgrade</param>
+        /// <param name="onlyCompleted">default is false</param>
+        /// <returns>true if upgrade has started, or completed in onlyCompleted = true. False if upgrade not started</returns>
+        public static bool CheckUpgrade(int upgradeId, bool onlyCompleted = false)
         {
-            return (float)(point1.X - point2.X) * (point1.X - point2.X) + (point1.Y - point2.Y) * (point1.Y - point2.Y);
+            if (onlyCompleted)
+                return VBot.Bot.StateManager.CheckUpgradeFinished(upgradeId);
+            else 
+                return VBot.Bot.StateManager.CheckUpgradeFinished(upgradeId) && VBot.Bot.StateManager.CheckUpgradeInProgress(upgradeId);;
         }
+
+        /// <summary>
+        /// This function ensures drones are harvesting optimally across different bases
+        /// </summary>
+        public static void DistributeWorkers()
+        {
+            List<Agent> resourceCenters = GetAgents(Units.ResourceCenters);
+            List<Agent> Geysers = GetAgents(Units.GasGeysers);
+            List<Agent> Workers = GetAgents(Units.Workers).ToList();
+            bool oversaturatedGases = false;
+            // step 1 - add drones to gas
+            int workersOnGas = 0;
+            int maxGasPotential = 0;
+            foreach (var gas in Geysers)
+            {
+                if (gas.Unit.AssignedHarvesters > gas.Unit.IdealHarvesters)
+                    oversaturatedGases = true;
+
+                workersOnGas += gas.Unit.AssignedHarvesters;
+                maxGasPotential += gas.Unit.IdealHarvesters;
+            }
+            if (workersOnGas < VBot.Bot.Build.IdealGasWorkers && workersOnGas < maxGasPotential)
+            {
+                int idealWorkerCount = maxGasPotential < VBot.Bot.Build.IdealGasWorkers
+                    ? maxGasPotential
+                    : VBot.Bot.Build.IdealGasWorkers;
+
+                int workersToTransfer = idealWorkerCount - workersOnGas;
+                Queue<Agent> agentsForGas = new Queue<Agent>();
+                for (int i = 0; i < workersToTransfer; i++)
+                {
+                    var newWorker = GetWorker();
+                    if (newWorker == null)
+                        continue;
+                    agentsForGas.Enqueue(newWorker);
+                    newWorker.Busy = true;
+                }
+
+                foreach (Agent gas in Geysers)
+                {
+                    int transfers = gas.Unit.IdealHarvesters - gas.Unit.AssignedHarvesters;
+                    for (int i = 0; i < transfers; i++)
+                        if (agentsForGas.Count > 0)
+                            agentsForGas.Dequeue().Order(Abilities.SMART, gas.Unit.Tag);
+                }
+            }
+
+            // step 2 - remove drones from oversaturated gas
+            if (oversaturatedGases)
+            {
+                foreach (var gas in Geysers)
+                {
+                    if (gas.Unit.IdealHarvesters < gas.Unit.AssignedHarvesters)
+                    {
+                        List<Agent> workersToRemove = new List<Agent>();
+                        for (int i = 0; i < gas.Unit.AssignedHarvesters - gas.Unit.IdealHarvesters; i++)
+                        {
+                            Agent worker = Workers
+                                .Where(w => w.Unit.Orders.Count() > 0)
+                                .Where(w => w.Unit.Orders[0].TargetUnitTag == gas.Unit.Tag).FirstOrDefault();
+                            worker.Busy = false;
+                            workersToRemove.Add(worker);
+                        }
+
+                        ulong mineralTag = GetUnits(Units.MineralFields)
+                            .Where(m => DistanceBetweenSq(m.Pos, gas.Unit.Pos) < 100)
+                            .FirstOrDefault().Tag;
+                        var action = new ActionRawUnitCommand
+                        {
+                            AbilityId = (int)Abilities.SMART,
+                            TargetUnitTag = mineralTag,
+                        };
+                        action.UnitTags.AddRange(workersToRemove.Select(w => w.Unit.Tag));
+                        VBot.Bot.AddAction(action);
+                        return;
+                    }
+                }
+
+            }
+
+            // step 3 - remove drones if over ideal drone count
+            if (workersOnGas > VBot.Bot.Build.IdealGasWorkers)
+            {
+                int workersToRemoveCount = workersOnGas - VBot.Bot.Build.IdealGasWorkers;
+                List<Agent> workersToRemove = new List<Agent>();
+                ulong mineralTag = 0;
+                while (workersToRemoveCount > 0)
+                {
+                    workersToRemoveCount--;
+                    foreach (Agent gas in Geysers)
+                    {
+                        if (gas.Unit.AssignedHarvesters == 0)
+                            continue;
+
+                        Agent worker = Workers
+                            .Where(w => w.Unit.Orders.Count() > 0)
+                            .Where(w => w.Unit.Orders[0].TargetUnitTag == gas.Unit.Tag).FirstOrDefault();
+                        if (worker == null)
+                            return;
+                        workersToRemove.Add(worker);
+                        mineralTag = GetUnits(Units.MineralFields)
+                            .Where(m => DistanceBetweenSq(m.Pos, gas.Unit.Pos) < 100)
+                            .FirstOrDefault().Tag;
+                    }
+                }
+                ActionRawUnitCommand action = new ActionRawUnitCommand
+                {
+                    AbilityId = (int)Abilities.SMART,
+                    TargetUnitTag = mineralTag,
+                };
+                action.UnitTags.AddRange(workersToRemove.Select(w => w.Unit.Tag));
+                VBot.Bot.AddAction(action);
+            }
+
+            
+        }
+
+        /// <summary>
+        /// Gets a list of all the known SC2Api.Units that the enemy owns within the matching hashset
+        /// </summary>
+        /// <param name="unitTypes">a hashset of the desired units</param>
+        /// <returns>a list of matching SC2Api units controlled by the enemy</returns>
+        public static List<Unit> GetEnemyUnits(HashSet<uint> unitTypes)
+        {
+            return VBot.Bot.Observation.Observation.RawData.Units
+                .Where(u => u.Alliance == Alliance.Enemy && unitTypes.Contains(u.UnitType))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Gets a list of all the known SC2Api.Units that the enemy owns within the matching unitType
+        /// </summary>
+        /// <param name="unitType">the id of a desired unit</param>
+        /// <returns>a list of matching SC2Api units controlled by the enemy</returns>
+        public static List<Unit> GetEnemyUnits(uint unitType)
+        {
+            return GetEnemyUnits(new HashSet<uint> { unitType });
+        }
+        
+        /// <summary>
+        /// Gets a list of all the known SC2Api.Units that the enemy owns
+        /// </summary>
+        /// <returns>all known SC2Api units controlled by the enemy</returns>
+        public static List<Unit> GetEnemyUnits()
+        {
+            return VBot.Bot.Observation.Observation.RawData.Units
+                .Where(u => u.Alliance == Alliance.Enemy)
+                .ToList();
+        }
+
+        public static int supplyOf(HashSet<uint> units)
+        {
+            float sup = 0;
+            foreach (var unit in units)
+                sup += VBot.Bot.Data.Units[(int)unit].FoodRequired * VBot.Bot.StateManager.GetCompletedCount(unit);
+
+            return (int)Math.Ceiling(sup);
+        }
+
     }
 }

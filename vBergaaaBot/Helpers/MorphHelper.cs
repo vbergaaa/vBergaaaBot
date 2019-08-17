@@ -1,56 +1,48 @@
-﻿using System;
+﻿
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using vBergaaaBot;
 
 namespace vBergaaaBot.Helpers
 {
     public static class MorphHelper
     {
-        public static List<MorphStep> MorpSteps = GetMorphSteps();
+        public static Dictionary<uint, uint> MorpSteps = GetMorphSteps();
 
-        private static List<MorphStep> GetMorphSteps()
+        private static Dictionary<uint, uint> GetMorphSteps()
         {
-            List<MorphStep> steps = new List<MorphStep>();
-            steps.Add(new MorphStep(Units.DRONE, Units.LARVA));
-            steps.Add(new MorphStep(Units.ZERGLING, Units.LARVA));
-            steps.Add(new MorphStep(Units.BANELING, Units.ZERGLING));
-            steps.Add(new MorphStep(Units.ROACH, Units.LARVA));
-            steps.Add(new MorphStep(Units.RAVAGER, Units.ROACH));
-            steps.Add(new MorphStep(Units.HYDRALISK, Units.LARVA));
-            steps.Add(new MorphStep(Units.LURKER, Units.HYDRALISK));
-            steps.Add(new MorphStep(Units.MUTALISK, Units.LARVA));
-            steps.Add(new MorphStep(Units.CORRUPTOR, Units.LARVA));
-            steps.Add(new MorphStep(Units.BROOD_LORD, Units.CORRUPTOR));
-            steps.Add(new MorphStep(Units.INFESTOR, Units.LARVA));
-            steps.Add(new MorphStep(Units.ULTRALISK, Units.LARVA));
+            Dictionary<uint, uint> steps = new Dictionary<uint, uint>();
+            steps.Add(Units.DRONE, Units.LARVA);
+            steps.Add(Units.ZERGLING, Units.LARVA);
+            steps.Add(Units.BANELING, Units.ZERGLING);
+            steps.Add(Units.ROACH, Units.LARVA);
+            steps.Add(Units.RAVAGER, Units.ROACH);
+            steps.Add(Units.HYDRALISK, Units.LARVA);
+            steps.Add(Units.LURKER, Units.HYDRALISK);
+            steps.Add(Units.MUTALISK, Units.LARVA);
+            steps.Add(Units.CORRUPTOR, Units.LARVA);
+            steps.Add(Units.BROOD_LORD, Units.CORRUPTOR);
+            steps.Add(Units.INFESTOR, Units.LARVA);
+            steps.Add(Units.ULTRALISK, Units.LARVA);
             // get number for swarm host
             // get number for viper
-            steps.Add(new MorphStep(Units.OVERLORD, Units.LARVA));
-            steps.Add(new MorphStep(Units.OVERSEER, Units.OVERLORD));
+            steps.Add(Units.OVERLORD, Units.LARVA);
+            steps.Add(Units.OVERSEER, Units.OVERLORD);
             // get number for dropperlord
             return steps;
         }
-    }
 
-    public class MorphStep
-    {
-        public uint FromUnit { get; set; }
-        public uint ToUnit { get; set; }
-        public uint Egg { get; set; }
-        public MorphStep(uint to, uint from, uint egg)
+        /// <summary>
+        /// searches morph steps to find what unit type morphs into the desired unit
+        /// </summary>
+        /// <param name="unitType">the desired unit to morph into</param>
+        /// <returns>the unit type of the unit required to morph into the desired unit</returns>
+        public static uint GetPreMorphType(uint unitType)
         {
-            FromUnit = from;
-            Egg = egg;
-            ToUnit = to;
-        }
-        public MorphStep(uint to, uint from)
-        {
-            FromUnit = from;
+            if (MorpSteps.ContainsKey(unitType))
+                return MorpSteps[unitType];
 
-            ToUnit = to;
+            // log error if cant find unit
+            Logger.Error("Unable to find morph step for {0} - Type: {1}.", VBot.Bot.Data.Units[(int)unitType].Name, unitType);
+            return 0;
         }
     }
 }

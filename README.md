@@ -1,8 +1,11 @@
 # vBergaaBot
-This repository contains a C# bot to play Starcraft 2. The skeleton of this bot was created by Simon Prins (https://github.com/SimonPrins/ExampleBot) which is a blank bot that intergrates the ladder manager and sets up the connections to the SC2Api.
 
-from there I added all the bots logic and separate builds.
-The top build of the bot successfully defeats the ingame AI on elite (hardest ingame setting) in all there matchups.
+## version 2.0.0
+
+This repository contains a C# bot to play Starcraft 2. The skeleton of this bot cloned from here (https://github.com/NikEyX/SC2-CSharpe-Starterkit) which is a blank bot that intergrates the ladder manager and sets up the connections to the SC2Api.
+
+from there I stripped most of the built in methods and rewrote and restructured the logic
+The current iteration of the bot beats the ingame ai on its hardest setting against all three races.
 
 ### To view the bot in action
 First you will have to install some things, if you haven't already.
@@ -42,7 +45,7 @@ You will need to take a number of steps to prepare your bot for the ladder.
 
 ### Playing your bot against other bots through the LadderManager
 You can also run the LadderManager locally. The following instructions will allow you to do so.
-1. Follow the instructions [here](https://github.com/Cryptyc/Sc2LadderServer#developer-install--compile-instructions-windows) to install the LadderManager. If you only have the .NET version of visual studio you may also need to install the C++ version. This can be done by using the installer from step 2 of the 'Preperations' section and choosing the C++ IDE.
+1. Follow the instructions [here](https://github.com/Cryptyc/Sc2LadderServer#developer-install--compile-instructions-windows) to install the LadderManager. If you only have the .NET version of visual studio you may also need to install the C++ version. This can be done by using the visual studio installer and choosing the C++ IDE.
 2. Move the contents of the folder created in 'Preparing your bot for the ladder' to the ExeDirectory.
 3. Add your bot to the LadderBots.json file.
 4. Add a game between your bot and another to the matchuplist.

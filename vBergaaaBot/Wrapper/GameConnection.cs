@@ -73,7 +73,14 @@ namespace vBergaaaBot {
 
             var request = new Request();
             request.CreateGame = createGame;
-            var response = await proxy.SendRequest(request);
+            var response = CheckResponse(await proxy.SendRequest(request));
+
+            if(response.CreateGame.Error != ResponseCreateGame.Types.Error.Unset) {
+                Logger.Error("CreateGame error: {0}", response.CreateGame.Error.ToString());
+                if(!String.IsNullOrEmpty(response.CreateGame.ErrorDetails)) {
+                    Logger.Error(response.CreateGame.ErrorDetails);
+                }
+            }
         }
 
         public void readSettings() {
@@ -112,7 +119,15 @@ namespace vBergaaaBot {
 
             var request = new Request();
             request.JoinGame = joinGame;
-            var response = await proxy.SendRequest(request);
+            var response = CheckResponse(await proxy.SendRequest(request));
+
+            if(response.JoinGame.Error != ResponseJoinGame.Types.Error.Unset) {
+                Logger.Error("JoinGame error: {0}", response.JoinGame.Error.ToString());
+                if(!String.IsNullOrEmpty(response.JoinGame.ErrorDetails)) {
+                    Logger.Error(response.JoinGame.ErrorDetails);
+                }
+            }
+
             return response.JoinGame.PlayerId;
         }
 
@@ -136,7 +151,15 @@ namespace vBergaaaBot {
             var request = new Request();
             request.JoinGame = joinGame;
 
-            var response = await proxy.SendRequest(request);
+            var response = CheckResponse(await proxy.SendRequest(request));
+
+            if(response.JoinGame.Error != ResponseJoinGame.Types.Error.Unset) {
+                Logger.Error("JoinGame error: {0}", response.JoinGame.Error.ToString());
+                if(!String.IsNullOrEmpty(response.JoinGame.ErrorDetails)) {
+                    Logger.Error(response.JoinGame.ErrorDetails);
+                }
+            }
+
             return response.JoinGame.PlayerId;
         }
 
@@ -177,14 +200,14 @@ namespace vBergaaaBot {
 
             var dataResponse = await proxy.SendRequest(dataReq);
 
-            Controller.gameInfo = gameInfoResponse.GameInfo;
-            Controller.gameData = dataResponse.Data;
-            bool start = true;
+            bool gameStarted = false;
+
             while (true) {
+
                 var observationRequest = new Request();
                 observationRequest.Observation = new RequestObservation();
                 var response = await proxy.SendRequest(observationRequest);
-                
+
                 var observation = response.Observation;
 
                 if (response.Status == Status.Ended || response.Status == Status.Quit)
@@ -194,22 +217,17 @@ namespace vBergaaaBot {
                             if (result.PlayerId == playerId)
                             {
                                 Logger.Info("Result: {0}", result.Result);
-                            // Do whatever you want with the info
-
+                                // Do whatever you want with the info
                             }
                         }
                         break;
                     }
-                Controller.obs = observation;
-                if (start)
+
+                if (!gameStarted)
                 {
-                    
-                    start = false;
                     bot.OnStart(gameInfoResponse.GameInfo, dataResponse.Data, observation, playerId);
+                    gameStarted = true;
                 }
-
-                
-
                 var actions = bot.OnFrame(observation);
 
                 var actionRequest = new Request();
@@ -249,6 +267,16 @@ namespace vBergaaaBot {
         public async Task RunLadder(Bot bot, Race myRace, string[] args) {
             var commandLineArgs = new CLArgs(args);
             await RunLadder(bot, myRace, commandLineArgs.GamePort, commandLineArgs.StartPort);
+        }
+
+        private Response CheckResponse(Response response){
+            if(response.Error.Count > 0) {
+                Logger.Error("Response errors:");
+                foreach(var error in response.Error) {
+                    Logger.Error(error);
+                }
+            }
+            return response;
         }
     }
 }

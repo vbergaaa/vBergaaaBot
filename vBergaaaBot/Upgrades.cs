@@ -1,13 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace vBergaaaBot
 {
     internal static class Upgrades
     {
-        public static int ZERGLING_MOVE_SPEED = 66;
+        public static uint GetAbilityId(int upgradeId)
+        {
+            return VBot.Bot.Data.Upgrades[upgradeId].AbilityId;
+        }
+
+        public static int ZERGLING_MOVESPEED = 66;
     }
 }

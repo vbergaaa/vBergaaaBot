@@ -1,33 +1,77 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using vBergaaaBot;
+﻿using System.Collections.Generic;
 
 namespace vBergaaaBot.Helpers
 {
-    public static class UpgradeHelper
+    public class UpgradeHelper
     {
-        public static List<UpgradeStep> UpgradeSteps = GetUpgradeSteps();
+        // props
+        public static Dictionary<int, HashSet<uint>> UpgradeSteps = GetUpgradeSteps();
+        public static Dictionary<int, uint> UpgradeTechBuildingRequirements = GetTechBuildingRequirements();
+        public static Dictionary<int, int> UpgradeTechUpgradeRequirements = GetTechUpgradeRequirements();
 
-        private static List<UpgradeStep> GetUpgradeSteps()
+        // Edit these as new upgrades are added to the bot
+        private static Dictionary<int, HashSet<uint>> GetUpgradeSteps()
         {
-            List<UpgradeStep> steps = new List<UpgradeStep>();
-            steps.Add(new UpgradeStep(Upgrades.ZERGLING_MOVE_SPEED, Units.SPAWNING_POOL));
-            
+            Dictionary<int, HashSet<uint>> steps = new Dictionary<int, HashSet<uint>>();
+            steps.Add(Upgrades.ZERGLING_MOVESPEED, new HashSet<uint> { Units.SPAWNING_POOL });
+
+            // add all terran in and protoss upgrades as required
+
             return steps;
         }
-    }
-
-    public class UpgradeStep
-    {
-        public HashSet<uint> FromBuilding { get; set; }
-        public int Upgrade { get; set; }
-        public UpgradeStep(int to, uint from)
+        private static Dictionary<int, uint> GetTechBuildingRequirements()
         {
-            FromBuilding = new HashSet<uint> { from };
-            Upgrade = to;
+            Dictionary<int, uint> steps = new Dictionary<int, uint>();
+            //steps.Add(Upgrades.ADRENAL_GLANDS, Units.HIVE);
+            return steps;
+        }
+        private static Dictionary<int, int> GetTechUpgradeRequirements()
+        {
+            Dictionary<int, int> steps = new Dictionary<int, int>();
+            //steps.Add(Upgrades.ZERG_MELEE_2, Upgrades.ZERG_MELEE_1);
+            return steps;
+        }
+
+        // These are the static methods to reference from other classes
+        /// <summary>
+        /// Searchs the GetUpgradeSteps to find what unit type creates the desired upgrade
+        /// </summary>
+        /// <param name="upgradeType">the type of the desired upgrade</param>
+        /// <returns>the type of the unit that researchs the upgrade</returns>
+        public static HashSet<uint> GetUpgradeBuildingTypes(int upgradeType)
+        {
+            if (UpgradeSteps.ContainsKey(upgradeType))
+                return UpgradeSteps[upgradeType];
+
+            // log error if cant find unit
+            Logger.Error("Unable to find upgrade step for {0} - Type: {1}.", VBot.Bot.Data.Units[(int)upgradeType].Name, upgradeType);
+            return new HashSet<uint> { 0 };
+        }
+
+        /// <summary>
+        /// Checks to see if an upgrade requires a building to exist before it can be researched
+        /// </summary>
+        /// <param name="upgradeType">the type of the desrired upgrade</param>
+        /// <returns>the type of the unit requred to research if one exist, 0 otherwise</returns>
+        public static uint GetUpgradeTechBuildingReq(int upgradeType)
+        {
+            if (UpgradeTechBuildingRequirements.ContainsKey(upgradeType))
+                return UpgradeTechBuildingRequirements[upgradeType];
+            else
+                return 0;
+        }
+
+        /// <summary>
+        /// Checks to see if an upgrade requires another upgrade to exist before it can be researched
+        /// </summary>
+        /// <param name="upgradeType">the type of the desrired upgrade</param>
+        /// <returns>the type of the upgrade requred to research if one is required, 0 otherwise</returns>
+        public static int GetUpgradeTechUpgradeReq(int upgradeType)
+        {
+            if (UpgradeTechUpgradeRequirements.ContainsKey(upgradeType))
+                return UpgradeTechUpgradeRequirements[upgradeType];
+            else
+                return 0;
         }
     }
 }

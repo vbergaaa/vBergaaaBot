@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,9 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="Google.Protobuf">
-      <HintPath>..\References\Google.Protobuf.dll</HintPath>
-    </Reference>
+    <PackageReference Include="Google.Protobuf" Version="3.6.1" />
   </ItemGroup>
 
 </Project>

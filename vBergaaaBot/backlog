@@ -1,0 +1,12 @@
+﻿feature improvements & bug fixes
+- distribute workers should distribute any idle workers
+- place building should avoid mineral patch 
+- attack task should group army instead of running lings ahead
+
+reworks
+- micro controllers need to be updated to use tasks
+- tasks need to have a priority setting
+
+new features
+- overlord scouting
+- dont chase single lings

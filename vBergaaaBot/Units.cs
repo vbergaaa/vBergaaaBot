@@ -48,6 +48,9 @@ namespace vBergaaaBot {
         public static uint SUPPLY_DEPOT_LOWERED = 47;
         public static uint MARINE = 48;
         public static uint REAPER = 49;
+        public static uint WIDOW_MINE = 498;
+        public static uint WIDOW_MINE_BURROWED = 500;
+        public static uint LIBERATOR = 689;
         public static uint GHOST = 50;
         public static uint MARAUDER = 51;
         public static uint MULE = 268;
@@ -110,13 +113,22 @@ namespace vBergaaaBot {
         public static uint ZERGLING = 105;
         public static uint OVERLORD = 106;
         public static uint HYDRALISK = 107;
+        public static uint LURKER = 502;
+        public static uint LURKER_BURROWED = 503;
         public static uint MUTALISK = 108;
         public static uint ULTRALISK = 109;
         public static uint ROACH = 110;
+        public static uint RAVAGER = 688;
+        public static uint RAVAGER_BURROWED = 690;
         public static uint INFESTOR = 111;
         public static uint CORRUPTOR = 112;
         public static uint BROOD_LORD_COCOON = 113;
         public static uint BROOD_LORD = 114;
+        public static uint VIPER = 499;
+        public static uint SWARM_HOST_BURROWED = 493;
+        public static uint SWARM_HOST = 494;
+        public static uint LOCUST = 489;
+        public static uint LOCUST_FLYING = 693;
         public static uint BANELING_BURROWED = 115;
         public static uint DRONE_BURROWED = 116;
         public static uint HYDRALISK_BURROWED = 117;
@@ -153,14 +165,9 @@ namespace vBergaaaBot {
         public static uint SPACE_PLATFORM_GEYSER = 343;
         public static uint RICH_VESPENE_GEYSER = 344;
         public static uint MINERAL_FIELD_750 = 483;
-        public static uint WIDOW_MINE = 498;
-        public static uint WIDOW_MINE_BURROWED = 500;
-        public static uint LURKER = 502;
         public static uint PROTOSS_VESPENE_GEYSER = 608;
         public static uint LAB_MINERAL_FIELD = 665;
         public static uint LAB_MINERAL_FIELD_750 = 666;
-        public static uint RAVAGER = 688;
-        public static uint LIBERATOR = 689;
         public static uint PURIFIER_RICH_MINERAL_FIELD = 796;
         public static uint PURIFIER_RICH_MINERAL_FIELD_750 = 797;
         public static uint PURIFIER_VESPENE_GEYSER = 880;
@@ -170,7 +177,20 @@ namespace vBergaaaBot {
         public static uint BATTLE_STATION_MINERAL_FIELD = 886;
         public static uint BATTLE_STATION_MINERAL_FIELD_750 = 887;
 
+        public static uint GetAbilityId(uint unit)
+        {
+            return VBot.Bot.Data.Units[(int)unit].AbilityId;
+        }
 
+        public static void LoadData()
+        {
+            foreach (var unit in VBot.Bot.Data.Units)
+                if (unit.AbilityId != 0)
+                    Abilities.CreatesUnit.Add(unit.AbilityId, unit.UnitId);
+            foreach (var upgrade in VBot.Bot.Data.Upgrades)
+                if (upgrade.AbilityId != 0)
+                    Abilities.ResearchsUpgrade.Add(upgrade.AbilityId, upgrade.UpgradeId);
+        }
         public static readonly HashSet<uint> All = new HashSet<uint> {
             HELLBAT,
             LIBERATOR,
@@ -286,10 +306,19 @@ namespace vBergaaaBot {
             MUTALISK,
             ULTRALISK,
             ROACH,
+            RAVAGER,
+            RAVAGER_BURROWED,
+            LURKER,
+            LURKER_BURROWED,
             INFESTOR,
             CORRUPTOR,
             BROOD_LORD_COCOON,
             BROOD_LORD,
+            VIPER,
+            LOCUST,
+            LOCUST_FLYING,
+            SWARM_HOST,
+            SWARM_HOST_BURROWED,
             BANELING_BURROWED,
             DRONE_BURROWED,
             HYDRALISK_BURROWED,
@@ -339,6 +368,17 @@ namespace vBergaaaBot {
             BATTLE_STATION_MINERAL_FIELD_750
         };
 
+        public static readonly HashSet<uint> GrantsSupply = new HashSet<uint>
+        {
+            // Do not add lair or hive to this list, as upgrading to lair will not grant you additional supply;
+            // if you must - rename this to GrantsSuppplyOnCompletion, then dupplicate it and rename them to (ProvidesSupply?)
+            OVERLORD,
+            PYLON,
+            SUPPLY_DEPOT,
+            HATCHERY,
+            COMMAND_CENTER,
+            NEXUS
+        };
 
         public static readonly HashSet<uint> Zerg = new HashSet<uint> {
             INFESTOR_TERRAN,
@@ -375,6 +415,15 @@ namespace vBergaaaBot {
             MUTALISK,
             ULTRALISK,
             ROACH,
+            RAVAGER,
+            RAVAGER_BURROWED,
+            LOCUST,
+            LOCUST_FLYING,
+            SWARM_HOST,
+            SWARM_HOST_BURROWED,
+            VIPER,
+            LURKER,
+            LURKER_BURROWED,
             INFESTOR,
             CORRUPTOR,
             BROOD_LORD_COCOON,
@@ -638,11 +687,21 @@ namespace vBergaaaBot {
             MOTHERSHIP,
             MUTALISK,
             PHOENIX,
+            QUEEN,
             QUEEN_BURROWED,
             RAVEN,
             REAPER,
             ROACH,
             ROACH_BURROWED,
+            RAVAGER,
+            RAVAGER_BURROWED,
+            LOCUST,
+            LOCUST_FLYING,
+            SWARM_HOST,
+            SWARM_HOST_BURROWED,
+            VIPER,
+            LURKER,
+            LURKER_BURROWED,
             SENTRY,
             SIEGE_TANK,
             SIEGE_TANK_SIEGED,
@@ -793,5 +852,21 @@ namespace vBergaaaBot {
             SUPPLY_DEPOT_LOWERED
         };
 
+        public static readonly HashSet<uint> ZergStructures = new HashSet<uint>
+        {
+            HATCHERY,
+            EXTRACTOR,
+            SPAWNING_POOL,
+            BANELING_NEST,
+            ROACH_WARREN,
+            EVOLUTION_CHAMBER,
+            SPINE_CRAWLER,
+            SPORE_CRAWLER,
+            HYDRALISK_DEN,
+            SPIRE,
+            NYDUS_NETWORK,
+            INVESTATION_PIT,
+            ULTRALISK_CAVERN,
+        };
     }
 }

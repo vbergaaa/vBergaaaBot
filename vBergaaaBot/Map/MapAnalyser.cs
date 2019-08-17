@@ -1,58 +1,57 @@
-﻿using System;
+﻿using vBergaaaBot.Helpers;
+using SC2APIProtocol;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SC2APIProtocol;
-using vBergaaaBot.Entity;
 
-namespace vBergaaaBot
+namespace vBergaaaBot.Map
 {
-    public class MapInformation
+    internal class MapAnalyser
     {
-        public List<BaseLocation> BaseLocations = new List<Entity.BaseLocation>();
-        public Entity.BaseLocation StartLocation;
+        public Point2D TargetAttackLocation { get; set; }
+        public List<BaseLocation> BaseLocations = new List<BaseLocation>();
+        public BaseLocation StartLocation;
         public List<Point2D> EnemyStartLocations = new List<Point2D>();
+        public int[,] DistancesToEnemy;
 
 
-        public void Analyse(VBergaaaBot vBergaaaBot)
+        public void Analyse(VBot bot)
         {
-            Controller.OpenFrame();
             //
             // get the start location
             //
-            foreach (Unit unit in Controller.GetUnits(Units.ResourceCenters))
-                StartLocation = new Entity.BaseLocation { Location = unit.Pos };
+            foreach (Agent unit in Controller.GetAgents(Units.ResourceCenters))
+                StartLocation = new BaseLocation { Location = unit.Unit.Pos };
 
             //
             // get location of all the bases
             //
 
             // get location of each mineral field and vespene geyser
-            List<Entity.MineralField> mineralFields = new List<Entity.MineralField>();
-            foreach (Unit mf in Controller.GetNeutralUnits(Units.MineralFields))
-                mineralFields.Add(new Entity.MineralField { Location = mf.Pos, UnitType = mf.unitType });
-            List<Entity.VespeneGeyser> vespeneGeysers = new List<Entity.VespeneGeyser>();
-            foreach (Unit vg in Controller.GetNeutralUnits(Units.GasGeysers))
-                vespeneGeysers.Add(new Entity.VespeneGeyser { Location = vg.Pos, UnitType = vg.unitType });
+            List<MineralField> mineralFields = new List<MineralField>();
+            foreach (Unit mf in Controller.GetUnits(Units.MineralFields))
+                mineralFields.Add(new MineralField { Location = mf.Pos, UnitType = mf.UnitType });
+            List<VespeneGeyser> vespeneGeysers = new List<VespeneGeyser>();
+            foreach (Unit vg in Controller.GetUnits(Units.GasGeysers))
+                vespeneGeysers.Add(new VespeneGeyser { Location = vg.Pos, UnitType = vg.UnitType });
             Logger.Info(vespeneGeysers.Count + " vespene geysers found");
 
             //group them into set of mineral fields
-            List<Entity.MineralField> checkedMineralFields = new List<Entity.MineralField>();
-            List<Entity.VespeneGeyser> checkedVespeneGeysers = new List<Entity.VespeneGeyser>();
+            List<MineralField> checkedMineralFields = new List<MineralField>();
+            List<VespeneGeyser> checkedVespeneGeysers = new List<VespeneGeyser>();
             int currentSet = 0;
-            foreach (Entity.MineralField mf in mineralFields)
+            foreach (MineralField mf in mineralFields)
             {
                 if (checkedMineralFields.Contains(mf)) // checks if mf has been used and skips if true
                     continue;
-                BaseLocations.Add(new Entity.BaseLocation());
+                BaseLocations.Add(new BaseLocation());
                 checkedMineralFields.Add(mf); // adds mf to checklist and current set
                 BaseLocations[currentSet].MineralPatches.Add(mf);
                 // gets rest of local mfs to add to set and check
                 for (int i = 0; i < BaseLocations[currentSet].MineralPatches.Count; i++)
                 {
-                    Entity.MineralField mfLocal = BaseLocations[currentSet].MineralPatches[i];
-                    foreach (Entity.MineralField mf2 in mineralFields)
+                    MineralField mfLocal = BaseLocations[currentSet].MineralPatches[i];
+                    foreach (MineralField mf2 in mineralFields)
                     {
                         if (checkedMineralFields.Contains(mf2)) // potiental source of error - mf2 =/= mf
                             continue;
@@ -67,16 +66,16 @@ namespace vBergaaaBot
             }
 
             // add gas geysers
-            foreach (Entity.BaseLocation baseLoc in BaseLocations)
+            foreach (BaseLocation baseLoc in BaseLocations)
             {
-                foreach (Entity.VespeneGeyser vg in vespeneGeysers)
+                foreach (VespeneGeyser vg in vespeneGeysers)
                 {
                     if (checkedVespeneGeysers.Contains(vg))
                         continue;
 
-                    foreach (Entity.MineralField mf in baseLoc.MineralPatches)
+                    foreach (MineralField mf in baseLoc.MineralPatches)
                     {
-                        if (GetDistance2D(mf.Location,vg.Location)<10)
+                        if (GetDistance2D(mf.Location, vg.Location) < 10)
                         {
                             checkedVespeneGeysers.Add(vg);
                             baseLoc.VespeneGeysers.Add(vg);
@@ -84,21 +83,21 @@ namespace vBergaaaBot
                         }
                     }
                 }
-            }            
+            }
 
             // get average position of each mineral cluster
-            foreach (Entity.BaseLocation baseLocation in BaseLocations)
+            foreach (BaseLocation baseLocation in BaseLocations)
             {
                 // find average location of cluster
                 float x = 0;
                 float y = 0;
 
-                foreach (Entity.MineralField mf in baseLocation.MineralPatches)
+                foreach (MineralField mf in baseLocation.MineralPatches)
                 {
                     x += mf.Location.X;
                     y += mf.Location.Y;
                 }
-                foreach (Entity.VespeneGeyser vg in baseLocation.VespeneGeysers)
+                foreach (VespeneGeyser vg in baseLocation.VespeneGeysers)
                 {
                     x += vg.Location.X;
                     y += vg.Location.Y;
@@ -106,21 +105,21 @@ namespace vBergaaaBot
                 // average cluster location 
                 float avgX = x / (baseLocation.MineralPatches.Count + baseLocation.VespeneGeysers.Count);
                 float avgY = y / (baseLocation.MineralPatches.Count + baseLocation.VespeneGeysers.Count);
-                Point2D averageOfCluster = new Point2D { X = avgX, Y = avgY };
+                Point averageOfCluster = new Point { X = avgX, Y = avgY };
 
                 avgX = (int)avgX + 0.5f;
                 avgY = (int)avgX + 0.5f;
 
                 // check placement of surrounding tiles
-                Point2D tempLoc = null;
+                Point tempLoc = null;
                 float closestDist = 1000000;
                 for (int i = 0; i < 20; i++)
                 {
                     for (int j = 0; j <= i; j++)
                     {
                         float maxDist;
-                        Point2D newPos;
-                        newPos = new Point2D { X = averageOfCluster.X + i - j, Y = averageOfCluster.Y + j };
+                        Point newPos;
+                        newPos = new Point { X = averageOfCluster.X + i - j, Y = averageOfCluster.Y + j };
                         maxDist = checkPosition(newPos, baseLocation);
                         if (maxDist < closestDist)
                         {
@@ -128,7 +127,7 @@ namespace vBergaaaBot
                             closestDist = maxDist;
                         }
 
-                        newPos = new Point2D { X = averageOfCluster.X + i - j, Y = averageOfCluster.Y - j };
+                        newPos = new Point { X = averageOfCluster.X + i - j, Y = averageOfCluster.Y - j };
                         maxDist = checkPosition(newPos, baseLocation);
                         if (maxDist < closestDist)
                         {
@@ -136,7 +135,7 @@ namespace vBergaaaBot
                             closestDist = maxDist;
                         }
 
-                        newPos = new Point2D { X = averageOfCluster.X - i + j, Y = averageOfCluster.Y + j };
+                        newPos = new Point { X = averageOfCluster.X - i + j, Y = averageOfCluster.Y + j };
                         maxDist = checkPosition(newPos, baseLocation);
                         if (maxDist < closestDist)
                         {
@@ -144,7 +143,7 @@ namespace vBergaaaBot
                             closestDist = maxDist;
                         }
 
-                        newPos = new Point2D { X = averageOfCluster.X - i + j, Y = averageOfCluster.Y - j };
+                        newPos = new Point { X = averageOfCluster.X - i + j, Y = averageOfCluster.Y - j };
                         maxDist = checkPosition(newPos, baseLocation);
                         if (maxDist < closestDist)
                         {
@@ -163,12 +162,25 @@ namespace vBergaaaBot
             BaseLocations = orderedLocations;
 
             // get enemy locations
-            foreach (Point2D startLocation in Controller.gameInfo.StartRaw.StartLocations)
+            foreach (Point2D startLocation in VBot.Bot.GameInfo.StartRaw.StartLocations)
             {
                 if (GetDistance2D(StartLocation.Location, startLocation) < 10)
                     continue;
                 EnemyStartLocations.Add(startLocation);
             }
+            TargetAttackLocation = EnemyStartLocations[0];
+            // generate distances from enemies main base
+            DistancesToEnemy = GenerateDistances(EnemyStartLocations[0]);
+            
+        }
+
+        public Queue<Point2D> GetScoutLocations ()
+        {
+            List<Point2D> baseLocations = BaseLocations
+                .Select(b => Sc2Util.To2D(b.Location))
+                .OrderBy(b=>WalkingDistanceFromEnemy(b))
+                .ToList();
+            return new Queue<Point2D>(baseLocations);
         }
 
         public static float GetDistance2D(Point2D p1, Point2D p2)
@@ -179,33 +191,42 @@ namespace vBergaaaBot
             float p2x = p2.X;
             float p2y = p2.Y;
 
-            return (float) Math.Sqrt((p1x - p2x) * (p1x - p2x) + (p1y - p2y) * (p1y - p2y));
+            return (float)Math.Sqrt((p1x - p2x) * (p1x - p2x) + (p1y - p2y) * (p1y - p2y));
+        }
+        public static float GetDistance2D(Point p1, Point p2)
+        {
+            Point2D p3 = new Point2D { X = p2.X, Y = p2.Y };
+            return GetDistance2D(p3, p1);
         }
         public static float GetDistance2D(Point2D p1, Point p2)
         {
             Point2D p3 = new Point2D { X = p2.X, Y = p2.Y };
             return GetDistance2D(p1, p3);
         }
-        public Point2D GetExpansionLocation()
+        public static float GetDistance2D(Point p1, Point2D p2)
         {
-            
+            return GetDistance2D(p2, p1);
+        }
+        public Point GetExpansionLocation()
+        {
+
             // get all resource centers
-            List<Point2D> rcLocations = Controller.GetUnits(Units.ResourceCenters).Select(u=>u.Pos).ToList();
+            List<Point> rcLocations = Controller.GetUnits(Units.ResourceCenters).Select(u => u.Pos).ToList();
             foreach (BaseLocation b in BaseLocations)
             {
-                Point2D nearestRC = rcLocations.OrderBy(rc => GetDistance2D(rc, b.Location)).FirstOrDefault();
-                if (GetDistance2D(nearestRC,b.Location) < 10 )
+                Point nearestRC = rcLocations.OrderBy(rc => GetDistance2D(rc, b.Location)).FirstOrDefault();
+                if (GetDistance2D(nearestRC, b.Location) < 10)
                     continue;
                 return b.Location;
             }
             return null;
         }
-        private float checkPosition(Point2D loc, Entity.BaseLocation baseLoc)
+        private float checkPosition(Point loc, BaseLocation baseLoc)
         {
-            foreach (Entity.MineralField mf in baseLoc.MineralPatches) 
+            foreach (MineralField mf in baseLoc.MineralPatches)
                 if (Math.Abs(mf.Location.X - loc.X) <= 5.5 && Math.Abs(mf.Location.Y - loc.Y) <= 5.5)
                     return 1000000;
-            foreach (Entity.VespeneGeyser vg in baseLoc.VespeneGeysers) 
+            foreach (VespeneGeyser vg in baseLoc.VespeneGeysers)
                 if (Math.Abs(vg.Location.X - loc.X) <= 5.5 && Math.Abs(vg.Location.Y - loc.Y) <= 6.1)
                     return 1000000;
 
@@ -213,11 +234,68 @@ namespace vBergaaaBot
 
             // clear of errors, get total distance from each mf to location
             float maxDistance = 0;
-            foreach (Entity.MineralField mf in baseLoc.MineralPatches)
+            foreach (MineralField mf in baseLoc.MineralPatches)
                 maxDistance += GetDistance2D(mf.Location, loc);
-            foreach (Entity.VespeneGeyser vg in baseLoc.VespeneGeysers)
+            foreach (VespeneGeyser vg in baseLoc.VespeneGeysers)
                 maxDistance += GetDistance2D(vg.Location, loc);
             return maxDistance;
+        }
+
+        public int [,] GenerateDistances(Point2D p)
+        {
+            int x = (int)p.X;
+            int y = (int)p.Y;
+            var mapGrid = VBot.Bot.GameInfo.StartRaw.PathingGrid;
+
+            int[,] distances = new int[mapGrid.Size.X, mapGrid.Size.Y];
+            for (int i = 0; i < mapGrid.Size.X; i++)
+            {
+                for (int j = 0; j < mapGrid.Size.Y; j++)
+                {
+                    distances[i,j] = 100000000;
+                }
+            }
+
+            distances[x, y] = 0;
+            Queue<Point2D> q = new Queue<Point2D>();
+            q.Enqueue(p);
+
+            while (q.Count > 0)
+            {
+                Point2D nextPoint = q.Dequeue();
+                expandQueue(q,nextPoint, mapGrid, distances,distances[(int)nextPoint.X,(int)nextPoint.Y]+1);
+            }
+
+            return distances;
+        }
+
+        private void expandQueue(Queue<Point2D> queue, Point2D point, ImageData map, int[,] distances, int newVal)
+        {
+            int x = (int)point.X;
+            int y = (int)point.Y;
+            List<Point2D> nearbyPoints = new List<Point2D>();
+            nearbyPoints.Add(new Point2D { X = x + 1, Y = y });
+            nearbyPoints.Add(new Point2D { X = x - 1, Y = y });
+            nearbyPoints.Add(new Point2D { X = x, Y = y + 1 });
+            nearbyPoints.Add(new Point2D { X = x, Y = y - 1 });
+            
+            foreach (Point2D p in nearbyPoints)
+            {
+                if (p.X < 0 || p.X > map.Size.X - 1 || p.Y < 0 || p.Y > map.Size.Y - 1)
+                    continue;
+                if (Sc2Util.ReadTile(map, (int)p.X, map.Size.Y - (int)p.Y - 1) && distances[(int)p.X,(int)p.Y] == 100000000)
+                {
+                    queue.Enqueue(p);
+                    distances[(int)p.X, (int)p.Y] = newVal;
+                }
+
+            }
+
+        }
+
+        public int WalkingDistanceFromEnemy(Point2D p)
+        {
+            return DistancesToEnemy[(int)p.X, (int)p.Y];
         }
     }
 }

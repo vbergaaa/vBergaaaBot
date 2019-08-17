@@ -1,15 +1,11 @@
-﻿using System;
+﻿using SC2APIProtocol;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SC2APIProtocol;
 
-namespace vBergaaaBot.Entity
+namespace vBergaaaBot.Map
 {
     public class BaseLocation
     {
-        public Point2D Location;
+        public Point Location;
         public List<MineralField> MineralPatches;
         public List<VespeneGeyser> VespeneGeysers;
 
