@@ -1,0 +1,48 @@
+﻿-------------------------------------------------------
+
+Version: 2.0.1
+
+Release Date: 18/9/2019
+Author: Ryan Vandenberg
+
+Description:
+Added changelog
+
+Fixed bug that resulted in setting realtime to false to break the bot.
+
+Fixed a bug that caused some macro tasks (particularly upgrades) to be skipped.
+
+Fixed a bug that caused getting vision of a pixel to return an incorrect value, which prevents the
+army from stopping in the middle of the map when no units are in sight.
+
+-------------------------------------------------------
+
+Version: 2.0.0
+
+Release Date: 17/8/2019
+Author: Ryan Vandenberg
+
+Description:
+
+Restructure of entire architecture.
+
+Builds now contain a collection of Microcontrollers. Microcontrollers read the game state
+and contain logic to create Tasks. Microcontrollers are managed by the bots MicroManager class. 
+
+Tasks are requests that the bot wants to make to the game state. Tasks check if a request is
+possible by reading the gamestate, then if possible they execute and send a request to the client.
+Tasks are managed and executed by the TaskManager class.
+
+The Agent class has replace the Unit class. An agent contains a sc2api.unit as a property and 
+methods to allow ease of assigning orders.
+
+The StateManager class was created to read the gamestate and record what units are in existance.
+It allows for much faster calls to get unit counts/agents then the obvs.obvs.rawdata object.
+
+The MapAnalyser class replaced the MapInformation class, and contains most of the same methods 
+with added functionality.
+
+The EnemyStrategyManager class has been created. it has limited functionality but will be contain
+several methods to analyse the enemy and react to it.
+
+-------------------------------------------------------

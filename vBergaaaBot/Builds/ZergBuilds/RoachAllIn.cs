@@ -20,10 +20,11 @@ namespace vBergaaaBot.Builds.ZergBuilds
             order.Add(new BuildStep(Units.EXTRACTOR, 1));
             order.Add(new BuildStep(Units.DRONE, 17));
             order.Add(new BuildStep(Units.SPAWNING_POOL, 1));
-            order.Add(new BuildStep(Units.DRONE, 17));
+            order.Add(new BuildStep(Units.DRONE, 18));
             order.Add(new BuildStep(Units.HATCHERY, 2));
             order.Add(new BuildStep(Units.DRONE, 19));
             order.Add(new BuildStep(Units.QUEEN, 1));
+            order.Add(new BuildStep(Upgrades.ZERGLING_MOVESPEED));
             order.Add(new BuildStep(Units.ROACH_WARREN, 1));
             order.Add(new BuildStep(Units.DRONE, 19));
             order.Add(new BuildStep(Units.OVERLORD, 4));
@@ -59,7 +60,7 @@ namespace vBergaaaBot.Builds.ZergBuilds
             List<MicroController> controllers = new List<MicroController>();
             controllers.Add(new InjectController());
             controllers.Add(new CreepController());
-            controllers.Add(new AttackController(20, 0));
+            controllers.Add(new AttackController(16, 0));
             controllers.Add(new ZergScoutController());
             return controllers;
         }

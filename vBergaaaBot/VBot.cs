@@ -8,11 +8,12 @@ using SC2APIProtocol;
 using vBergaaaBot.Builds.ZergBuilds;
 using System.Diagnostics;
 using System.Threading;
+using vBergaaaBot.Helpers;
 
 namespace vBergaaaBot {
     internal class VBot : Bot
     {
-        bool realTime = true;
+        bool realTime = false;
         Stopwatch sw = new Stopwatch();
         private List<Action> actions;
         // Properties
@@ -58,10 +59,10 @@ namespace vBergaaaBot {
             Build.OnStart();
 
             TaskManager = new TaskManager();
+            
         }
         public IEnumerable<Action> OnFrame(ResponseObservation observation)
         {
-            if (realTime)
             Observation = observation;
             actions = new List<Action>();
 
@@ -86,6 +87,7 @@ namespace vBergaaaBot {
                     Thread.Sleep((int)delayTime);
                 sw.Restart();
             }
+
             return actions;
         }
 

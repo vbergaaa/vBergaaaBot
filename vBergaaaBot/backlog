@@ -1,12 +1,20 @@
-﻿feature improvements & bug fixes
-- distribute workers should distribute any idle workers
-- place building should avoid mineral patch 
-- attack task should group army instead of running lings ahead
+﻿CURRENT BACKLOG
+--
+
+feature improvements & bug fixes
+- distribute workers should distribute any idle workers (7)
+- place building should avoid mineral patch (6)
+- attack task should group army instead of running lings ahead (5)
+- attack task shouldnt override scout task (8)
+- investigate rare bug that causes 2nd gas to be made when 1 is requested (1)
+- distribute workers needs to transfer mineral patches (7)
+- increment reserved minerals when a macro task is ordered (4)
 
 reworks
-- micro controllers need to be updated to use tasks
-- tasks need to have a priority setting
+- micro controllers need to be updated to use tasks (4)
+- tasks need to have a priority setting (4)
 
 new features
-- overlord scouting
-- dont chase single lings
+- overlord scouting (5)
+- dont chase single lings (1)
+- set up a retreat function if the original attack squad dies (2)

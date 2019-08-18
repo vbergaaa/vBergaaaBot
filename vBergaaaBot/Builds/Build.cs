@@ -26,7 +26,10 @@ namespace vBergaaaBot.Builds
                 int incr = 0;
                 foreach (var step in Opener)
                 {
-                    
+                    if (incr == 7)
+                    {
+
+                    }
                     if (!step.CheckWaitFor())
                         break;
                     if (step.CheckQty())
@@ -52,19 +55,16 @@ namespace vBergaaaBot.Builds
                         break;
                     }
                 }
-                Produce();
-            }
-
-            
-
-            foreach (var step in UpgradesBuild)
-            {
-                if (step.CheckQty())
+                foreach (var step in UpgradesBuild)
                 {
-                    step.CreateTask();
-                    break;
+                    if (step.CheckQty())
+                    {
+                        step.CreateTask();
+                        break;
+                    }
                 }
-            }
+                Produce();
+            }            
         }
 
         /// <summary>

@@ -13,14 +13,13 @@ namespace vBergaaaBot.MicroControllers
         private int supplyToRetreat;
         public override void CheckRequirements()
         {
-            if (!Active && Controller.supplyOf(Units.ArmyUnits) >= supplyToAttack)
+            if (!Active && Controller.SupplyOf(Units.ArmyUnits) >= supplyToAttack)
                 Activate();
-            else if (Active && Controller.supplyOf(Units.ArmyUnits) <= supplyToRetreat)
+            else if (Active && Controller.SupplyOf(Units.ArmyUnits) <= supplyToRetreat)
                 Deactivate();
             if (VBot.Bot.Map.TargetAttackLocation == VBot.Bot.Map.EnemyStartLocations[0] 
-                && Sc2Util.ReadTile(VBot.Bot.Observation.Observation.RawData.MapState.Visibility, VBot.Bot.Map.TargetAttackLocation))
+                && Controller.HasVision(VBot.Bot.Map.TargetAttackLocation))
                 Deactivate();
-            
         }
 
         public AttackController(int atkSup, int retreatSup)

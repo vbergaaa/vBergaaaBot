@@ -20,11 +20,22 @@ namespace vBergaaaBot.Helpers
         /// <returns>a bool value if the map square is pathable/creeped etc.</returns>
         public static bool ReadTile(ImageData pathingGrid, int x, int y)
         {
-            int pixelID = x / 8 + (pathingGrid.Size.Y - 1 - y) * pathingGrid.Size.X / 8;
-            byte Byte = pathingGrid.Data[pixelID];
-            var bits = new BitArray(new byte[] { Byte });
-            return bits[7 - x % 8];
+            if (pathingGrid.BitsPerPixel == 1)
+            {
+                int pixelID = x / 8 + (pathingGrid.Size.Y - 1 - y) * pathingGrid.Size.X / 8;
+                byte Byte = pathingGrid.Data[pixelID];
+                var bits = new BitArray(new byte[] { Byte });
+                return bits[7 - x % 8];
+            }
+            else
+            {
+                int pixelID = x + (pathingGrid.Size.Y - 1 - y) * pathingGrid.Size.X;
+                byte Byte = pathingGrid.Data[pixelID];
+                return ((int)Byte == 2);
+
+            }
         }
+        
         /// <summary>
         /// Takes a map and reads if a tile contains either creep or is pathable, depending on which map it takes
         /// </summary>
@@ -36,6 +47,27 @@ namespace vBergaaaBot.Helpers
             int x = (int)tile.X;
             int y = (int)pathingGrid.Size.Y - 1 - (int)tile.Y;
             return ReadTile(pathingGrid, x, y);
+        }
+
+        /// this method is only for testing. keeping it here to test creep spread later
+        public static void DisplayMap(ImageData pathingGrid, ImageData visionGrid)
+        {
+            string msg = "";
+            for (var j = 0; j < pathingGrid.Size.Y; j++)
+            {
+                for (var i = 0; i < pathingGrid.Size.X; i++)
+                {
+                    if (ReadTile(pathingGrid, new Point2D { X = i, Y = pathingGrid.Size.Y - j - 1 }) &&
+                        ReadTile(visionGrid, new Point2D { X = i, Y = pathingGrid.Size.Y - j - 1 }))
+                        msg += " ";
+                    else if (ReadTile(pathingGrid, new Point2D { X = i, Y = pathingGrid.Size.Y - j - 1 }))
+                        msg += "-";
+                    else
+                        msg += "X";
+                }
+                msg += "\n";
+            }
+            Logger.Info(msg);
         }
 
         public static Point2D To2D(Point p)

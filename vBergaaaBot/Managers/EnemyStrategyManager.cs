@@ -29,7 +29,7 @@ namespace vBergaaaBot.Managers
             {
                 VBot.Bot.Map.TargetAttackLocation = Sc2Util.To2D(KnownBuildings[0].Pos);
             }
-            else if (KnownArmy.Count > 0)
+            else if (KnownArmy.Count > 2)  // set to 2 to avoid chasing single workers that are scouting
             {
                 VBot.Bot.Map.TargetAttackLocation = Sc2Util.To2D(KnownArmy[0].Pos);
             }
@@ -39,6 +39,5 @@ namespace vBergaaaBot.Managers
                     VBot.Bot.Map.TargetAttackLocation = VBot.Bot.Map.EnemyStartLocations[0];
             }
         }
-        
     }
 }

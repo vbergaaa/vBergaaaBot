@@ -28,11 +28,11 @@ namespace vBergaaaBot {
         public static uint DEPOT_LOWER = 556;
         public static uint RESEARCH_INFERNAL_PREIGNITER = 761;
         public static uint RESEARCH_BANSHEE_CLOAK = 790;
+        public static uint MORPH_HATCHERY = 1152;
+        public static uint RESEARCH_METABOLIC_BOOST = 1253;
+        public static uint MORPH_DRONE = 1342;
         public static uint SPREAD_CREEP_QUEEN = 1694;
         public static uint SPREAD_CREEP_TUMOR = 1733;
-        public static uint RESEARCH_UPGRADE_MECH_AIR = 3699;     
-        public static uint RESEARCH_UPGRADE_MECH_ARMOR = 3700;   
-        public static uint RESEARCH_UPGRADE_MECH_GROUND = 3701;
         public static uint TRANSFORM_TO_HELLION = 1978;
         public static uint TRANSFORM_TO_HELLBAT = 1998;
         public static uint THOR_SWITCH_AP = 2362;
@@ -44,5 +44,8 @@ namespace vBergaaaBot {
         public static uint CLOAK = 3676;
         public static uint LAND = 3678;
         public static uint LIFT = 3679;
+        public static uint RESEARCH_UPGRADE_MECH_AIR = 3699;     
+        public static uint RESEARCH_UPGRADE_MECH_ARMOR = 3700;   
+        public static uint RESEARCH_UPGRADE_MECH_GROUND = 3701;
     }
 }

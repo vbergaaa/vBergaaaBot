@@ -16,7 +16,7 @@ namespace vBergaaaBot
         private static readonly string mapName = "(2)16-BitLE.SC2Map";
 
         private static readonly Race opponentRace = Race.Random;
-        private static readonly Difficulty opponentDifficulty = Difficulty.Harder;
+        private static readonly Difficulty opponentDifficulty = Difficulty.VeryHard;
 
         public static GameConnection gc;
 

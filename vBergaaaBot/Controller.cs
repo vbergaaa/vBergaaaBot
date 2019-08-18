@@ -58,6 +58,7 @@ namespace vBergaaaBot {
         ///  <param name="unitType">the unit type of the desired unit</param>
         /// <returns>true if possible to make, false otherwise</returns>
         public static bool CanMakeUnit(uint unitType)
+
         {
             if (!CheckUnitTechRequirements(unitType))
                 return false;
@@ -368,6 +369,7 @@ namespace vBergaaaBot {
         {
             return (p1.X - p2.X) * (p1.X - p2.X) + (p1.Y - p2.Y) * (p1.Y - p2.Y);
         }
+
         /// <summary>
         /// This methods gets the square of the 2D distance between two points
         /// </summary>
@@ -378,6 +380,7 @@ namespace vBergaaaBot {
         {
             return DistanceBetweenSq(new Point2D { X = p1.X, Y = p1.Y }, p2);
         }
+
         /// <summary>
         /// This methods gets the square of the 2D distance between two points
         /// </summary>
@@ -388,6 +391,7 @@ namespace vBergaaaBot {
         {
             return DistanceBetweenSq(p2,p1);
         }
+
         /// <summary>
         /// This methods gets the square of the 2D distance between two points
         /// </summary>
@@ -461,6 +465,7 @@ namespace vBergaaaBot {
         {
             return GetTumorLocation(startPoint, VBot.Bot.Map.EnemyStartLocations[0], range);
         }
+
         /// <summary>
         /// Get a location to place a creep tumor
         /// </summary>
@@ -665,13 +670,18 @@ namespace vBergaaaBot {
                 .ToList();
         }
 
-        public static int supplyOf(HashSet<uint> units)
+        public static int SupplyOf(HashSet<uint> units)
         {
             float sup = 0;
             foreach (var unit in units)
                 sup += VBot.Bot.Data.Units[(int)unit].FoodRequired * VBot.Bot.StateManager.GetCompletedCount(unit);
 
             return (int)Math.Ceiling(sup);
+        }
+
+        public static bool HasVision(Point2D loc)
+        {
+            return Sc2Util.ReadTile(VBot.Bot.Observation.Observation.RawData.MapState.Visibility, loc);
         }
 
     }

@@ -5,7 +5,7 @@
 This repository contains a C# bot to play Starcraft 2. The skeleton of this bot cloned from here (https://github.com/NikEyX/SC2-CSharpe-Starterkit) which is a blank bot that intergrates the ladder manager and sets up the connections to the SC2Api.
 
 from there I stripped most of the built in methods and rewrote and restructured the logic
-The current iteration of the bot beats the ingame ai on its hardest setting against all three races.
+The current iteration of the bot beats the ingame ai on its hardest setting against all three races 90% of the time.
 
 ### To view the bot in action
 First you will have to install some things, if you haven't already.

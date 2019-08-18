@@ -62,7 +62,6 @@ namespace vBergaaaBot.Tasks
         // Methods
         /// <summary>
         /// checks if it is possible to build/research unit/upgrade, then gets an agent and orders it to complete the task.
-        /// TODO: ADD RESOURCE MANAGEMENT (+= reservedminerals etc.)
         /// </summary>
         public override void OnFrame()
         {
@@ -124,7 +123,13 @@ namespace vBergaaaBot.Tasks
                     Clear();
                 }
             }
-            Clear();
+        }
+
+        public override void Clear()
+        {
+            base.Clear();
+            if (FromAgent != null)
+                FromAgent.Busy = false;
         }
     }
 }
