@@ -14,6 +14,12 @@ namespace vBergaaaBot.Helpers
         {
             Dictionary<int, HashSet<uint>> steps = new Dictionary<int, HashSet<uint>>();
             steps.Add(Upgrades.ZERGLING_MOVESPEED, new HashSet<uint> { Units.SPAWNING_POOL });
+            steps.Add(Upgrades.ZERG_MELEE_WEAPONS_1, new HashSet<uint> { Units.EVOLUTION_CHAMBER });
+            steps.Add(Upgrades.ZERG_MELEE_WEAPONS_2, new HashSet<uint> { Units.EVOLUTION_CHAMBER });
+            steps.Add(Upgrades.ZERG_MELEE_WEAPONS_3, new HashSet<uint> { Units.EVOLUTION_CHAMBER });
+            steps.Add(Upgrades.ZERG_CARAPACE_1, new HashSet<uint> { Units.EVOLUTION_CHAMBER });
+            steps.Add(Upgrades.ZERG_CARAPACE_2, new HashSet<uint> { Units.EVOLUTION_CHAMBER });
+            steps.Add(Upgrades.ZERG_CARAPACE_3, new HashSet<uint> { Units.EVOLUTION_CHAMBER });
 
             // add all terran in and protoss upgrades as required
 
@@ -22,13 +28,15 @@ namespace vBergaaaBot.Helpers
         private static Dictionary<int, uint> GetTechBuildingRequirements()
         {
             Dictionary<int, uint> steps = new Dictionary<int, uint>();
-            //steps.Add(Upgrades.ADRENAL_GLANDS, Units.HIVE);
+            steps.Add(Upgrades.ZERG_MELEE_WEAPONS_2, Units.LAIR);
+            steps.Add(Upgrades.ZERG_MELEE_WEAPONS_3, Units.HIVE);
             return steps;
         }
         private static Dictionary<int, int> GetTechUpgradeRequirements()
         {
             Dictionary<int, int> steps = new Dictionary<int, int>();
-            //steps.Add(Upgrades.ZERG_MELEE_2, Upgrades.ZERG_MELEE_1);
+            steps.Add(Upgrades.ZERG_MELEE_WEAPONS_2, Upgrades.ZERG_MELEE_WEAPONS_1);
+            steps.Add(Upgrades.ZERG_MELEE_WEAPONS_3, Upgrades.ZERG_MELEE_WEAPONS_2);
             return steps;
         }
 
@@ -44,7 +52,7 @@ namespace vBergaaaBot.Helpers
                 return UpgradeSteps[upgradeType];
 
             // log error if cant find unit
-            Logger.Error("Unable to find upgrade step for {0} - Type: {1}.", VBot.Bot.Data.Units[(int)upgradeType].Name, upgradeType);
+            Logger.Error("Unable to find upgrade step for {0} - Type: {1}.", VBot.Bot.Data.Upgrades[(int)upgradeType].Name, upgradeType);
             return new HashSet<uint> { 0 };
         }
 

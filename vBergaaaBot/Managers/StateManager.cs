@@ -16,10 +16,26 @@ namespace vBergaaaBot.Managers
             Counts = new Dictionary<uint, int>();
             CompletedCounts = new Dictionary<uint, int>();
             UpgradesInProgress = new HashSet<uint>();
+
+            if (VBot.Bot.Observation.Observation.PlayerCommon.FoodWorkers > 0)
+            {
+                if (VBot.Bot.Race == SC2APIProtocol.Race.Zerg)
+                    Counts.Add(Units.DRONE, (int)VBot.Bot.Observation.Observation.PlayerCommon.FoodWorkers);
+                else if (VBot.Bot.Race == SC2APIProtocol.Race.Terran)
+                    Counts.Add(Units.SCV, (int)VBot.Bot.Observation.Observation.PlayerCommon.FoodWorkers);
+                else if (VBot.Bot.Race == SC2APIProtocol.Race.Protoss)
+                    Counts.Add(Units.PROBE, (int)VBot.Bot.Observation.Observation.PlayerCommon.FoodWorkers);
+                else
+                {
+                    throw new System.Exception("no race actual??");
+                }
+            }
+
             foreach (var unit in VBot.Bot.Observation.Observation.RawData.Units)
             {
                 if (unit.Alliance == SC2APIProtocol.Alliance.Self)
                 {
+                    
                     // get counts
                     if (!Units.Workers.Contains(unit.UnitType))// avoid worker units as count is wrong while inside gas geyser, get from obs.obs.playercommon instead
                         DictionaryHelper.Increment(Counts, unit.UnitType); 
@@ -64,18 +80,13 @@ namespace vBergaaaBot.Managers
             }
         }
 
-        public int GetCount(uint unitType)
+        public int GetCount(HashSet<uint> unitType)
         {
-            if (Units.Workers.Contains(unitType))
-            {
-                if (Counts.ContainsKey(unitType)) // populated if worker in construction
-                    return (int)VBot.Bot.Observation.Observation.PlayerCommon.FoodWorkers + Counts[unitType];
-                return (int)VBot.Bot.Observation.Observation.PlayerCommon.FoodWorkers;
-            }
-                
-            if (Counts.ContainsKey(unitType))
-                return Counts[unitType];
-            return 0;
+            int returnCount = 0;
+            foreach (var unit in unitType)
+                if (Counts.ContainsKey(unit))
+                    returnCount += Counts[unit];
+            return returnCount;
         }
         public int GetCompletedCount(uint unitType)
         {
@@ -97,7 +108,7 @@ namespace vBergaaaBot.Managers
 
         public Agent GetAvailableAgent(HashSet<uint> unitTypes)
         {
-            return Agents.Where(u => !u.Value.Busy && unitTypes.Contains(u.Value.Unit.UnitType)).FirstOrDefault().Value;
+            return Agents.Where(u => !u.Value.Busy && unitTypes.Contains(u.Value.Unit.UnitType) && u.Value.Unit.BuildProgress > 0.9999).FirstOrDefault().Value;
         }
 
         public List<Agent> GetAgents(HashSet<uint> unitTypes)
@@ -130,7 +141,7 @@ namespace vBergaaaBot.Managers
         /// <returns>true if upgrade has started, false otherwise</returns>
         public bool CheckUpgradeInProgress(int upgrade)
         {
-            if (UpgradesFinished.Contains((uint)upgrade))
+            if (UpgradesInProgress.Contains((uint)upgrade))
                 return true;
             return false;
         }

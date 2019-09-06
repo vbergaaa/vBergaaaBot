@@ -34,7 +34,6 @@ namespace vBergaaaBot.Map
             List<VespeneGeyser> vespeneGeysers = new List<VespeneGeyser>();
             foreach (Unit vg in Controller.GetUnits(Units.GasGeysers))
                 vespeneGeysers.Add(new VespeneGeyser { Location = vg.Pos, UnitType = vg.UnitType });
-            Logger.Info(vespeneGeysers.Count + " vespene geysers found");
 
             //group them into set of mineral fields
             List<MineralField> checkedMineralFields = new List<MineralField>();

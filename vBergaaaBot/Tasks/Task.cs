@@ -20,6 +20,7 @@ namespace vBergaaaBot.Tasks
         /// Setting discard to true will remove the task from the task manager on the next onframe.
         /// </summary>
         public bool Discard = false;
+        public int Id { get; set; }
 
         public ActionRawUnitCommand Command = new ActionRawUnitCommand();
 

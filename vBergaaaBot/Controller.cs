@@ -175,8 +175,11 @@ namespace vBergaaaBot {
         /// <param name="unitType">the unit type of the desired agent</param>
         /// <returns>a free agent if one is available, null otherwise</returns>
         public static Agent GetAvailableAgent(HashSet<uint> unitType)
+
+
         {
             return VBot.Bot.StateManager.GetAvailableAgent(unitType);
+
         }
 
         /// <summary>
@@ -186,8 +189,19 @@ namespace vBergaaaBot {
         /// <returns>the total count of a unit</returns>
         public static int GetTotalCount(uint unitType)
         {
-            return VBot.Bot.StateManager.GetCount(unitType);
+            return GetTotalCount(new HashSet<uint> { unitType });
         }
+
+        /// <summary>
+        /// Get a count of how many units are made and in production
+        /// </summary>
+        /// <param name="hhs">a hashset of the desired units to count</param>
+        /// <returns>the total count of the units</returns>
+        public static int GetTotalCount(HashSet<uint> hs)
+        {
+            return VBot.Bot.StateManager.GetCount(hs);
+        }
+
 
         /// <summary>
         /// Get a count of only how many units are made
@@ -350,13 +364,22 @@ namespace vBergaaaBot {
         /// <returns>the tag of the unbuild geyser to build a gas on, 0 if none are found</returns>
         public static ulong FindGasPlacement()
         {
+            List<Point> gasLocations = GetGasLocations();
             ulong constructionTag = 0;
             foreach (var rc in GetAgents(Units.ResourceCenters))
                 foreach (var gas in GetUnits(Units.GasGeysers))
-                    if (gas.UnitType != Units.EXTRACTOR && DistanceBetweenSq(rc.Unit.Pos, gas.Pos) < 81)
+                    if (!IsInRange(Sc2Util.To2D(gas.Pos),gasLocations,4) && DistanceBetweenSq(rc.Unit.Pos, gas.Pos) < 81)
+                    {
                         constructionTag = gas.Tag;
+                        return constructionTag;
+                    }
             return constructionTag;
 
+        }
+
+        private static List<Point> GetGasLocations()
+        {
+            return GetAgents(Units.GasGeysers).Select(a=>a.Unit.Pos).ToList();
         }
 
         /// <summary>
@@ -518,7 +541,7 @@ namespace vBergaaaBot {
             if (onlyCompleted)
                 return VBot.Bot.StateManager.CheckUpgradeFinished(upgradeId);
             else 
-                return VBot.Bot.StateManager.CheckUpgradeFinished(upgradeId) && VBot.Bot.StateManager.CheckUpgradeInProgress(upgradeId);;
+                return VBot.Bot.StateManager.CheckUpgradeFinished(upgradeId) || VBot.Bot.StateManager.CheckUpgradeInProgress(upgradeId);;
         }
 
         /// <summary>
@@ -529,6 +552,8 @@ namespace vBergaaaBot {
             List<Agent> resourceCenters = GetAgents(Units.ResourceCenters);
             List<Agent> Geysers = GetAgents(Units.GasGeysers);
             List<Agent> Workers = GetAgents(Units.Workers).ToList();
+            List<Unit> mineralPatches = GetUnits(Units.MineralFields);
+
             bool oversaturatedGases = false;
             // step 1 - add drones to gas
             int workersOnGas = 0;
@@ -634,6 +659,56 @@ namespace vBergaaaBot {
                 VBot.Bot.AddAction(action);
             }
 
+            // step 4 - move idle works to mineral patches
+            if (VBot.Bot.Observation.Observation.PlayerCommon.IdleWorkerCount > 0)
+            {
+                var idleWorkers = GetAgents(Units.Workers).Where(a => a.Unit.Orders.Count == 0);
+                Agent desiredRc = null;
+                foreach (Agent rc in resourceCenters)
+                {
+                    if (rc.Unit.AssignedHarvesters < rc.Unit.IdealHarvesters)
+                    {
+                        desiredRc = rc;
+                        break;
+                    }
+                }
+                if (desiredRc == null)
+                    desiredRc = resourceCenters[0];
+
+                var mineralPatch = GetAgentNear(mineralPatches, Sc2Util.To2D(desiredRc.Unit.Pos));
+                ActionRawUnitCommand command = new ActionRawUnitCommand();
+                command.UnitTags.Add(idleWorkers.Select(w => w.Unit.Tag));
+                command.AbilityId = (int)Abilities.SMART;
+                command.TargetUnitTag = mineralPatch.Unit.Tag;
+                VBot.Bot.AddAction(command);
+            }
+
+            // step 5 - transfer workers around minerals
+            Agent fromRC = null;
+            Agent toRC = null;
+            foreach (Agent rc in resourceCenters)
+            {
+                if (rc.Unit.AssignedHarvesters == rc.Unit.IdealHarvesters)
+                    continue;
+                if (rc.Unit.AssignedHarvesters > rc.Unit.IdealHarvesters)
+                    fromRC = rc;
+                else
+                    toRC = rc;
+            }
+            if (fromRC != null && toRC != null)
+            {
+                Agent workerToTransfer = Workers
+                    .Where(w => w.Unit.Orders.Count > 0
+                    && Abilities.MiningMinerals.Contains(w.Unit.Orders[0].AbilityId)
+                    && DistanceBetweenSq(w.Unit.Pos, fromRC.Unit.Pos) < 100)
+                    .FirstOrDefault();
+                Agent mineralPatch = GetAgentNear(mineralPatches, toRC.Unit.Tag);
+                ActionRawUnitCommand action = new ActionRawUnitCommand();
+                action.UnitTags.Add(workerToTransfer.Unit.Tag);
+                action.TargetUnitTag = mineralPatch.Unit.Tag;
+                action.AbilityId = (int)Abilities.SMART;
+                VBot.Bot.AddAction(action);
+            }
             
         }
 
@@ -670,6 +745,11 @@ namespace vBergaaaBot {
                 .ToList();
         }
 
+        /// <summary>
+        /// Gets the total supply of a selection of units
+        /// </summary>
+        /// <param name="units">the unitIds of the units to count</param>
+        /// <returns>the total supply of the desired units</returns>
         public static int SupplyOf(HashSet<uint> units)
         {
             float sup = 0;
@@ -679,10 +759,67 @@ namespace vBergaaaBot {
             return (int)Math.Ceiling(sup);
         }
 
+        /// <summary>
+        /// checks if the bot has vision of a tile on the map. 
+        /// </summary>
+        /// <param name="loc">A Point2D that you want to check the vision of</param>
+        /// <returns>true if the bot actively has vision of the location, false otherwise</returns>
         public static bool HasVision(Point2D loc)
         {
             return Sc2Util.ReadTile(VBot.Bot.Observation.Observation.RawData.MapState.Visibility, loc);
         }
 
+        /// <summary>
+        /// Get the agent from a collection of agents that is nearest to a point on the map
+        /// </summary>
+        /// <param name="agents">a collection of agents to check</param>
+        /// <param name="loc">a location to find the unit closest to</param>
+        /// <returns>the agent that is nearest to a point on the ground, or null if the unit collection is empty</returns>
+        public static Agent GetAgentNear(IEnumerable<Agent> agents, Point2D loc)
+        {
+            if (agents.Count() == 0 || loc == null)
+                return null;
+            return agents.OrderBy(a => DistanceBetweenSq(a.Unit.Pos, loc)).FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Get the agent from a collection of agents that is nearest to the unit with the given tag
+        /// </summary>
+        /// <param name="agents">a collection of agents to check</param>
+        /// <param name="tag">the unit tag of the desired unit. MUST BE AN AGENT</param>
+        /// <returns>the agent that is nearest to the unit with the matching tag, or null if hte tag is invalid, or the unit collection is empty</returns>
+        public static Agent GetAgentNear(IEnumerable<Agent> agents, ulong tag )
+        {
+            Agent a = GetAgentByTag(tag);
+            if (a == null)
+                return null;
+            return GetAgentNear(agents, Sc2Util.To2D(a.Unit.Pos));
+        }
+
+        /// <summary>
+        /// Get the agent from a collection of agents that is nearest to a point on the map
+        /// </summary>
+        /// <param name="units">a collection of units to check</param>
+        /// <param name="loc">a location to find the unit closest to</param>
+        /// <returns>the agent that is nearest to a point on the ground, or null if the unit collection is empty</returns>
+        public static Agent GetAgentNear(IEnumerable<Unit> units, Point2D loc)
+        {
+            IEnumerable<Agent> agents = units.Select(u => new Agent(u));
+            return GetAgentNear(agents, loc);
+        }
+
+        /// <summary>
+        /// Get the agent from a collection of units that is nearest to the agent with the given tag
+        /// </summary>
+        /// <param name="units">a collection of agents to check</param>
+        /// <param name="tag">the unit tag of the desired unit. MUST BE AN AGENT</param>
+        /// <returns>the agent that is nearest to the unit with the matching tag, or null if the tag is invalid, or the unit collection is empty</returns>
+        public static Agent GetAgentNear(IEnumerable<Unit> units, ulong tag)
+        {
+            Agent a = GetAgentByTag(tag);
+            if (a == null)
+                return null;
+            return GetAgentNear(units, Sc2Util.To2D(a.Unit.Pos));
+        }
     }
 }

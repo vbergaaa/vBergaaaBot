@@ -14,6 +14,8 @@ namespace vBergaaaBot.Helpers
         {
             Dictionary<uint, HashSet<uint>> steps = new Dictionary<uint, HashSet<uint>>();
             steps.Add(Units.QUEEN, new HashSet<uint> { Units.HATCHERY, Units.LAIR, Units.HIVE });
+            steps.Add(Units.LAIR, new HashSet<uint> { Units.HATCHERY });
+            steps.Add(Units.HIVE, new HashSet<uint> { Units.LAIR });
 
             // add all terran in and protoss units as required
 

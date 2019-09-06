@@ -184,6 +184,8 @@ namespace vBergaaaBot {
 
         public static void LoadData()
         {
+            Abilities.CreatesUnit = new Dictionary<uint, uint>();
+            Abilities.ResearchsUpgrade = new Dictionary<uint, uint>();
             foreach (var unit in VBot.Bot.Data.Units)
                 if (unit.AbilityId != 0)
                     Abilities.CreatesUnit.Add(unit.AbilityId, unit.UnitId);

@@ -13,6 +13,7 @@ using vBergaaaBot.Helpers;
 namespace vBergaaaBot {
     internal class VBot : Bot
     {
+        bool test = false;
         bool realTime = false;
         Stopwatch sw = new Stopwatch();
         private List<Action> actions;
@@ -20,6 +21,7 @@ namespace vBergaaaBot {
         public ResponseGameInfo GameInfo;
         public ResponseData Data;
         public ResponseObservation Observation;
+        public int OppenentsPlayerId;
         public int PlayerId;
         public static VBot Bot;
         public MapAnalyser Map;
@@ -28,6 +30,8 @@ namespace vBergaaaBot {
         public MicroManager MicroManager = new MicroManager();
         public EnemyStrategyManager EnemyStrategyManager = new EnemyStrategyManager();
         public Build Build;
+        public Race Race;
+        public Race OpponentsRace;
 
         public int ReservedMinerals = 0;
         public int ReservedGas = 0;
@@ -48,7 +52,10 @@ namespace vBergaaaBot {
             GameInfo = gameInfo;
             Data = data;
             Observation = observation;
-            PlayerId = (int)playerId == 1 ? 0 : 1;
+            PlayerId = (int)playerId - 1;
+            OppenentsPlayerId = PlayerId == 1 ? 0 : 1;
+            Race = GameInfo.PlayerInfo[PlayerId].RaceActual;
+            OpponentsRace = GameInfo.PlayerInfo[OppenentsPlayerId].RaceActual;
             Units.LoadData();
             StateManager = new StateManager();
             StateManager.OnFrame();
@@ -56,6 +63,8 @@ namespace vBergaaaBot {
             Map = new MapAnalyser();
             Map.Analyse(this);
             Build = new RoachAllIn();
+            if (test)
+                Build = new Testzerg();
             Build.OnStart();
 
             TaskManager = new TaskManager();
@@ -82,7 +91,7 @@ namespace vBergaaaBot {
 
             if (realTime)
             {
-                long delayTime = 22 - sw.ElapsedMilliseconds;
+                long delayTime = 30 - sw.ElapsedMilliseconds;
                 if (delayTime > 0)
                     Thread.Sleep((int)delayTime);
                 sw.Restart();

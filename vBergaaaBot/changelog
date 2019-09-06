@@ -1,8 +1,26 @@
 ﻿-------------------------------------------------------
 
+Version: 2.0.2
+
+Release Date: 6/9/2019
+Author: Ryan Vandenberg
+
+Description:
+Modification of the distribute workers function to stop them overmining from a base.
+
+Modification of GetAvailableAgent function to exclude units in construction
+
+Modification of GetGasLocation function to aviod geysers that have an agent onto of them
+
+Added optional functionality to automaticallly start a new game when a game ends
+
+Updated Map Pool to test on maps from current map pool.
+
+-------------------------------------------------------
+
 Version: 2.0.1
 
-Release Date: 18/9/2019
+Release Date: 18/8/2019
 Author: Ryan Vandenberg
 
 Description:

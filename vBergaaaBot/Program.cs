@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using SC2APIProtocol;
 
 namespace vBergaaaBot
@@ -10,10 +11,8 @@ namespace vBergaaaBot
         private const Race race = Race.Zerg;
 
         // Settings for single player mode.
-        //        private static string mapName = "AbyssalReefLE.SC2Map";
-        //        private static string mapName = "AbiogenesisLE.SC2Map";
-        //        private static string mapName = "FrostLE.SC2Map";
-        private static readonly string mapName = "(2)16-BitLE.SC2Map";
+        //        private static string mapName = ;
+
 
         private static readonly Race opponentRace = Race.Random;
         private static readonly Difficulty opponentDifficulty = Difficulty.VeryHard;
@@ -22,23 +21,62 @@ namespace vBergaaaBot
 
         private static void Main(string[] args)
         {
-            try
+            
+            gc = new GameConnection();
+            int gameCount = 0;
+                
+            if (args.Length == 0)
             {
-                gc = new GameConnection();
-                if (args.Length == 0)
+                while (gameCount < 1) // change this to chain games automatically
                 {
-                    gc.readSettings();
-                    gc.RunSinglePlayer(bot, mapName, race, opponentRace, opponentDifficulty).Wait();
+                    try
+                    {
+                        gc.readSettings();
+                        gc.RunSinglePlayer(bot, GetMapName(), race, opponentRace, opponentDifficulty).Wait();
+                        gameCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Info(ex.ToString());
+                    }
                 }
-                else
-                    gc.RunLadder(bot, race, args).Wait();
             }
-            catch (Exception ex)
-            {
-                Logger.Info(ex.ToString());
-            }
+            else
+                gc.RunLadder(bot, race, args).Wait();
+            
 
             Logger.Info("Terminated.");
+        }
+
+        private static string GetMapName()
+        {
+            List<string> maps = new List<string>
+            {
+                //// old maps
+                //"(2)16-BitLE.SC2Map",
+                //"AbiogenesisLE.SC2Map",
+                //"AbyssalReefLE.SC2Map",
+                //"(2)AcidPlantLE",
+                //"(2)CatalystLE",
+                //"(2)DreamcatcherLE",
+                //"(2)LostandFoundLE",
+                //"(2)RedshiftLE",
+
+                // 2019 Season 3
+                "AcropolisLE.SC2Map",
+                "DiscoBloodbathLE.SC2Map",
+                "EphemeronLE.SC2Map",
+                "ThunderbirdLE.SC2Map",
+                "TritonLE.SC2Map",
+                "WintersGateLE.SC2Map",
+                "WorldofSleepersLE.SC2Map"
+
+
+            };
+            Random r = new Random();
+            int i = r.Next(maps.Count);
+
+            return maps[i];
         }
     }
 }

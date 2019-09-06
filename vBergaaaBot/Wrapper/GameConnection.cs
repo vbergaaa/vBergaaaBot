@@ -12,7 +12,7 @@ namespace vBergaaaBot {
         private const int stepSize = 1;
         private readonly ProtobufProxy proxy = new ProtobufProxy();
         private string starcraftDir;
-
+        public static Process CurrentProcess;
         private string starcraftExe;
         private string starcraftMaps;
 
@@ -21,11 +21,22 @@ namespace vBergaaaBot {
             processStartInfo.Arguments = string.Format("-listen {0} -port {1} -displayMode 0", address, port);
             processStartInfo.WorkingDirectory = Path.Combine(starcraftDir, "Support64");
 
-            Logger.Info("Launching SC2:");
-            Logger.Info("--> File: {0}", starcraftExe);
-            Logger.Info("--> Working Dir: {0}", processStartInfo.WorkingDirectory);
-            Logger.Info("--> Arguments: {0}", processStartInfo.Arguments);
-            Process.Start(processStartInfo);
+            CurrentProcess = Process.Start(processStartInfo);
+        }
+
+        private void EndSC2Instance()
+        {
+            Logger.Info("Ending SC2 Instance");
+            CurrentProcess.CloseMainWindow();
+            try
+            {
+                if (!CurrentProcess.HasExited)
+                    CurrentProcess.Kill();  
+            }
+            catch
+            {
+
+            }
         }
 
         private async Task Connect(int port) {
@@ -33,10 +44,11 @@ namespace vBergaaaBot {
             for (var i = 0; i < timeout * 2; i++) {
                 try {
                     await proxy.Connect(address, port);
-                    Logger.Info("--> Connected");
                     return;
                 }
                 catch (WebSocketException) {
+                    if ((i + 1) % 10 == 0)
+                        port++;
 //                    Logger.Info("Failed. Retrying...");
                 }
 
@@ -209,14 +221,22 @@ namespace vBergaaaBot {
                 var response = await proxy.SendRequest(observationRequest);
 
                 var observation = response.Observation;
+                if (observation == null)
+                {
 
+                }
                 if (response.Status == Status.Ended || response.Status == Status.Quit)
                     {
                         foreach (var result in observation.PlayerResult)
                         {
                             if (result.PlayerId == playerId)
                             {
-                                Logger.Info("Result: {0}", result.Result);
+                            Logger.Info("Result: {0}, Race: {1}, Opponents Race: {2}, GameTime: {3}:{4}",
+                                result.Result,
+                                VBot.Bot.Race,
+                                VBot.Bot.OpponentsRace,
+                                VBot.Bot.Observation.Observation.GameLoop / 22 / 60,
+                                (VBot.Bot.Observation.Observation.GameLoop / 22) % 60);
                                 // Do whatever you want with the info
                             }
                         }
@@ -242,19 +262,18 @@ namespace vBergaaaBot {
                 await proxy.SendRequest(stepRequest);
             }
         }
-
+        int port = 5678;
         public async Task RunSinglePlayer(Bot bot, string map, Race myRace, Race opponentRace,
             Difficulty opponentDifficulty) {
-            var port = 5678;
+            
             Logger.Info("Starting SinglePlayer Instance");
             StartSC2Instance(port);
-            Logger.Info("Connecting to port: {0}", port);
             await Connect(port);
-            Logger.Info("Creating game");
             await CreateGame(map, opponentRace, opponentDifficulty);
-            Logger.Info("Joining game");
             var playerId = await JoinGame(myRace);
             await Run(bot, playerId);
+            EndSC2Instance();
+            port++;
         }
 
         private async Task RunLadder(Bot bot, Race myRace, int gamePort, int startPort) {

@@ -46,6 +46,14 @@ namespace vBergaaaBot.Builds
             
             if (!OpeningStage)
             {
+                foreach (var step in UpgradesBuild)
+                {
+                    if (step.CheckQty())
+                    {
+                        step.CreateTask();
+                        break;
+                    }
+                }
                 foreach (var step in MainBuild)
                 {
                     if (step.CheckQty())
@@ -55,14 +63,7 @@ namespace vBergaaaBot.Builds
                         break;
                     }
                 }
-                foreach (var step in UpgradesBuild)
-                {
-                    if (step.CheckQty())
-                    {
-                        step.CreateTask();
-                        break;
-                    }
-                }
+                
                 Produce();
             }            
         }

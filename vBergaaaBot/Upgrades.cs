@@ -11,5 +11,11 @@ namespace vBergaaaBot
         }
 
         public static int ZERGLING_MOVESPEED = 66;
+        public static int ZERG_MELEE_WEAPONS_1 = 53;
+        public static int ZERG_MELEE_WEAPONS_2 = 54;
+        public static int ZERG_MELEE_WEAPONS_3 = 55;
+        public static int ZERG_CARAPACE_1 = 56;
+        public static int ZERG_CARAPACE_2 = 57;
+        public static int ZERG_CARAPACE_3 = 58;
     }
 }

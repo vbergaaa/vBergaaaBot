@@ -1,14 +1,12 @@
 ﻿CURRENT BACKLOG
---
+-- place building should avoid building inside mineral patches
 
 feature improvements & bug fixes
-- distribute workers should distribute any idle workers (7)
-- place building should avoid mineral patch (6)
 - attack task should group army instead of running lings ahead (5)
 - attack task shouldnt override scout task (8)
-- investigate rare bug that causes 2nd gas to be made when 1 is requested (1)
-- distribute workers needs to transfer mineral patches (7)
 - increment reserved minerals when a macro task is ordered (4)
+- check if mining gold minerals has same ability codes as regular mining (0)
+- accuracy on new base locations needs improvement
 
 reworks
 - micro controllers need to be updated to use tasks (4)
@@ -16,5 +14,4 @@ reworks
 
 new features
 - overlord scouting (5)
-- dont chase single lings (1)
 - set up a retreat function if the original attack squad dies (2)

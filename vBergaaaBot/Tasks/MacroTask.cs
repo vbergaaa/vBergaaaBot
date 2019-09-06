@@ -94,7 +94,6 @@ namespace vBergaaaBot.Tasks
                     if (FromAgent.Unit.Orders.Count == 0)
                     {
                         // agent is idle. clear it
-                        FromAgent.Busy = false;
                         Clear();
                     }
                 }

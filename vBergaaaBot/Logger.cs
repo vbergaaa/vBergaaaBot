@@ -26,7 +26,7 @@ namespace vBergaaaBot {
             // do not write to stdout if it is closed (LadderServer on linux)
             if(!stdoutClosed) {
                 try {
-                    Console.WriteLine(msg, parameters);
+                    Console.WriteLine(msg); //Console.WriteLine(msg, parameters);
                 }
                 catch {
                     stdoutClosed = true;
