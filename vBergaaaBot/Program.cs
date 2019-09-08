@@ -31,9 +31,9 @@ namespace vBergaaaBot
                 {
                     try
                     {
+                        gameCount++;
                         gc.readSettings();
                         gc.RunSinglePlayer(bot, GetMapName(), race, opponentRace, opponentDifficulty).Wait();
-                        gameCount++;
                     }
                     catch (Exception ex)
                     {
@@ -70,8 +70,6 @@ namespace vBergaaaBot
                 "TritonLE.SC2Map",
                 "WintersGateLE.SC2Map",
                 "WorldofSleepersLE.SC2Map"
-
-
             };
             Random r = new Random();
             int i = r.Next(maps.Count);

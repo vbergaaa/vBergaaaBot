@@ -1,5 +1,20 @@
 ﻿-------------------------------------------------------
 
+Version: 2.0.3
+
+Release Date: 8/9/2019
+Author: Ryan Vandenberg
+
+Description:
+Fixed an issue causing buildings to build inside the mineral line.
+
+Agents that are ordered to a macro task will reserve resources as the order is issued.
+
+Remodeled the creep controller, enabling creep to be spread more evenly accross the map.
+
+Remodeled the Scout Task and Zerg's Scout MicroController to use overlords for scouting. 
+-------------------------------------------------------
+
 Version: 2.0.2
 
 Release Date: 6/9/2019

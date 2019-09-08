@@ -315,7 +315,7 @@ namespace vBergaaaBot {
         /// <returns>a valid location of where the building will fit, Exception if placement cannot be found</returns>
         public static Point2D FindPlacement(uint unitType)
         {
-            BaseLocation startLocation = VBot.Bot.Map.StartLocation;
+            Base startLocation = VBot.Bot.Map.StartLocation;
             Point startingSpot = startLocation.Location;
             Point2D constructionSpot;
             const int radius = 12;
@@ -507,6 +507,8 @@ namespace vBergaaaBot {
             Point2D closestPoint = null;
             int minDist = 100000000;
 
+            List<Point> tumorLocations = GetAgents(Units.AllCreep).Select(a => a.Unit.Pos).ToList();
+
             for (int i = -range; i <= range; i++)
             {
                 for (int j = -range; j < range+1; j++)
@@ -517,7 +519,7 @@ namespace vBergaaaBot {
                     if (!Sc2Util.ReadTile(creepMap, testLoc))
                         continue;
 
-                    if (distances[(int)testLoc.X,(int)testLoc.Y] < minDist)
+                    if (distances[(int)testLoc.X,(int)testLoc.Y] < minDist && !IsInRange(testLoc,tumorLocations,5))
                     {
                         minDist = distances[(int)testLoc.X, (int)testLoc.Y];
                         closestPoint = testLoc;

@@ -7,8 +7,8 @@ namespace vBergaaaBot.Managers
 {
     public class EnemyStrategyManager : Manager
     {
-        List<Unit> KnownBuildings = new List<Unit>();
-        List<Unit> KnownArmy = new List<Unit>();
+        private static List<Unit> KnownBuildings = new List<Unit>();
+        private static List<Unit> KnownArmy = new List<Unit>();
         
 
         public override void OnFrame()
@@ -38,6 +38,14 @@ namespace vBergaaaBot.Managers
                 if (VBot.Bot.Map.TargetAttackLocation != VBot.Bot.Map.EnemyStartLocations[0])
                     VBot.Bot.Map.TargetAttackLocation = VBot.Bot.Map.EnemyStartLocations[0];
             }
+        }
+
+        public static bool EnemyBuildingAtLocation(Point2D location)
+        {
+            foreach (var building in KnownBuildings)
+                if (Controller.DistanceBetweenSq(building.Pos, location) < building.Radius * building.Radius)
+                    return true;
+            return false;
         }
     }
 }

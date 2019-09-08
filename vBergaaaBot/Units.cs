@@ -2,6 +2,25 @@
 
 namespace vBergaaaBot {
     internal static class Units {
+
+        public static uint GetAbilityId(uint unit)
+        {
+            return VBot.Bot.Data.Units[(int)unit].AbilityId;
+        }
+
+        public static void LoadData()
+        {
+            Abilities.CreatesUnit = new Dictionary<uint, uint>();
+            Abilities.ResearchsUpgrade = new Dictionary<uint, uint>();
+            foreach (var unit in VBot.Bot.Data.Units)
+                if (unit.AbilityId != 0)
+                    Abilities.CreatesUnit.Add(unit.AbilityId, unit.UnitId);
+            foreach (var upgrade in VBot.Bot.Data.Upgrades)
+                if (upgrade.AbilityId != 0)
+                    Abilities.ResearchsUpgrade.Add(upgrade.AbilityId, upgrade.UpgradeId);
+        }
+
+        #region
         public static uint COLOSSUS = 4;
         public static uint TECHLAB = 5;
         public static uint REACTOR = 6;
@@ -176,23 +195,8 @@ namespace vBergaaaBot {
         public static uint PURIFIER_MINERAL_FIELD_750 = 885;
         public static uint BATTLE_STATION_MINERAL_FIELD = 886;
         public static uint BATTLE_STATION_MINERAL_FIELD_750 = 887;
+        #endregion
 
-        public static uint GetAbilityId(uint unit)
-        {
-            return VBot.Bot.Data.Units[(int)unit].AbilityId;
-        }
-
-        public static void LoadData()
-        {
-            Abilities.CreatesUnit = new Dictionary<uint, uint>();
-            Abilities.ResearchsUpgrade = new Dictionary<uint, uint>();
-            foreach (var unit in VBot.Bot.Data.Units)
-                if (unit.AbilityId != 0)
-                    Abilities.CreatesUnit.Add(unit.AbilityId, unit.UnitId);
-            foreach (var upgrade in VBot.Bot.Data.Upgrades)
-                if (upgrade.AbilityId != 0)
-                    Abilities.ResearchsUpgrade.Add(upgrade.AbilityId, upgrade.UpgradeId);
-        }
         public static readonly HashSet<uint> All = new HashSet<uint> {
             HELLBAT,
             LIBERATOR,
@@ -867,6 +871,13 @@ namespace vBergaaaBot {
             NYDUS_NETWORK,
             INVESTATION_PIT,
             ULTRALISK_CAVERN,
+        };
+
+        public static readonly HashSet<uint> AllCreep = new HashSet<uint>
+        {
+            CREEP_TUMOR,
+            CREEP_TUMOR_BURROWED,
+            CREEP_TUMOR_QUEEN
         };
     }
 }

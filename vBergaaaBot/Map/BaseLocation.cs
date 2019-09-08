@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace vBergaaaBot.Map
 {
-    public class BaseLocation
+    public class Base
     {
         public Point Location;
         public List<MineralField> MineralPatches;
         public List<VespeneGeyser> VespeneGeysers;
 
-        public BaseLocation()
+        public Base()
         {
             MineralPatches = new List<MineralField>();
             VespeneGeysers = new List<VespeneGeyser>();

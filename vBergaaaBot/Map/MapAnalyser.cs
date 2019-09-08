@@ -9,8 +9,8 @@ namespace vBergaaaBot.Map
     internal class MapAnalyser
     {
         public Point2D TargetAttackLocation { get; set; }
-        public List<BaseLocation> BaseLocations = new List<BaseLocation>();
-        public BaseLocation StartLocation;
+        public List<Base> BaseLocations = new List<Base>();
+        public Base StartLocation;
         public List<Point2D> EnemyStartLocations = new List<Point2D>();
         public int[,] DistancesToEnemy;
 
@@ -21,7 +21,7 @@ namespace vBergaaaBot.Map
             // get the start location
             //
             foreach (Agent unit in Controller.GetAgents(Units.ResourceCenters))
-                StartLocation = new BaseLocation { Location = unit.Unit.Pos };
+                StartLocation = new Base { Location = unit.Unit.Pos };
 
             //
             // get location of all the bases
@@ -43,7 +43,7 @@ namespace vBergaaaBot.Map
             {
                 if (checkedMineralFields.Contains(mf)) // checks if mf has been used and skips if true
                     continue;
-                BaseLocations.Add(new BaseLocation());
+                BaseLocations.Add(new Base());
                 checkedMineralFields.Add(mf); // adds mf to checklist and current set
                 BaseLocations[currentSet].MineralPatches.Add(mf);
                 // gets rest of local mfs to add to set and check
@@ -65,7 +65,7 @@ namespace vBergaaaBot.Map
             }
 
             // add gas geysers
-            foreach (BaseLocation baseLoc in BaseLocations)
+            foreach (Base baseLoc in BaseLocations)
             {
                 foreach (VespeneGeyser vg in vespeneGeysers)
                 {
@@ -85,7 +85,7 @@ namespace vBergaaaBot.Map
             }
 
             // get average position of each mineral cluster
-            foreach (BaseLocation baseLocation in BaseLocations)
+            foreach (Base baseLocation in BaseLocations)
             {
                 // find average location of cluster
                 float x = 0;
@@ -157,8 +157,11 @@ namespace vBergaaaBot.Map
             }
 
             // order bases
-            List<BaseLocation> orderedLocations = BaseLocations.OrderBy(b => GetDistance2D(b.Location, StartLocation.Location)).ToList();
+            List<Base> orderedLocations = BaseLocations.OrderBy(b => GetDistance2D(b.Location, StartLocation.Location)).ToList();
             BaseLocations = orderedLocations;
+
+            StartLocation.MineralPatches = BaseLocations[0].MineralPatches;
+            StartLocation.VespeneGeysers = BaseLocations[0].VespeneGeysers;
 
             // get enemy locations
             foreach (Point2D startLocation in VBot.Bot.GameInfo.StartRaw.StartLocations)
@@ -173,13 +176,13 @@ namespace vBergaaaBot.Map
             
         }
 
-        public Queue<Point2D> GetScoutLocations ()
+        public List<Point2D> GetScoutLocations ()
         {
             List<Point2D> baseLocations = BaseLocations
                 .Select(b => Sc2Util.To2D(b.Location))
                 .OrderBy(b=>WalkingDistanceFromEnemy(b))
                 .ToList();
-            return new Queue<Point2D>(baseLocations);
+            return baseLocations;
         }
 
         public static float GetDistance2D(Point2D p1, Point2D p2)
@@ -211,7 +214,7 @@ namespace vBergaaaBot.Map
 
             // get all resource centers
             List<Point> rcLocations = Controller.GetUnits(Units.ResourceCenters).Select(u => u.Pos).ToList();
-            foreach (BaseLocation b in BaseLocations)
+            foreach (Base b in BaseLocations)
             {
                 Point nearestRC = rcLocations.OrderBy(rc => GetDistance2D(rc, b.Location)).FirstOrDefault();
                 if (GetDistance2D(nearestRC, b.Location) < 10)
@@ -220,7 +223,7 @@ namespace vBergaaaBot.Map
             }
             return null;
         }
-        private float checkPosition(Point loc, BaseLocation baseLoc)
+        private float checkPosition(Point loc, Base baseLoc)
         {
             foreach (MineralField mf in baseLoc.MineralPatches)
                 if (Math.Abs(mf.Location.X - loc.X) <= 5.5 && Math.Abs(mf.Location.Y - loc.Y) <= 5.5)

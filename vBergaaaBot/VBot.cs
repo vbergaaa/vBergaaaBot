@@ -15,7 +15,7 @@ namespace vBergaaaBot {
     {
         bool test = false;
         bool realTime = false;
-        Stopwatch sw = new Stopwatch();
+        Stopwatch sw;
         private List<Action> actions;
         // Properties
         public ResponseGameInfo GameInfo;
@@ -48,7 +48,10 @@ namespace vBergaaaBot {
         public void OnStart(ResponseGameInfo gameInfo, ResponseData data, ResponseObservation observation, uint playerId)
         {
             if (realTime)
-                sw.Start();
+            {
+                sw = new Stopwatch();
+                sw.Start(); 
+            }
             GameInfo = gameInfo;
             Data = data;
             Observation = observation;

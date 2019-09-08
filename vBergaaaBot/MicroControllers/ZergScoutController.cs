@@ -1,55 +1,45 @@
 ﻿using SC2APIProtocol;
+using vBergaaaBot.Managers;
 using System.Collections.Generic;
+using System.Linq;
+using vBergaaaBot.Tasks;
 
 namespace vBergaaaBot.MicroControllers
 {
     public class ZergScoutController : MicroController
     {
-        bool scoutWithZergling = false;
-        Agent zerglingScout;
-        Queue<Point2D> ScoutLocations = VBot.Bot.Map.GetScoutLocations();
-        public Point2D GetNextScoutLocation()
-        {
-            var scoutLoc = ScoutLocations.Dequeue();
-            ScoutLocations.Enqueue(scoutLoc);
-            return scoutLoc;
-        }
+        private List<Point2D> scoutLocations = VBot.Bot.Map.GetScoutLocations();
         public override void CheckRequirements()
         {
-            if (!scoutWithZergling)
-            {
-                if (Controller.GetAvailableAgent(Units.ZERGLING) != null)
-                    scoutWithZergling = true;
-            }
+            if (Controller.GetCompletedCount(new HashSet<uint> { Units.ZERGLING, Units.OVERLORD }) > 0)
+                Activate();
             else
-            {
-                if (zerglingScout == null || Controller.GetAgentByTag(zerglingScout.Unit.Tag) == null)
-                {
-                    scoutWithZergling = false;
-                    zerglingScout = null;
-                }
-                    
-            }   
-                
+                Deactivate();
         }
 
         public override void OnFrame()
         {
-            CheckRequirements();
-            if (scoutWithZergling)
+            List<Agent> overlords = AssignedAgents.Where(a => a.Unit.UnitType == Units.OVERLORD).ToList();
+            if (overlords.Count() < 2 && overlords.Count() < Controller.GetCompletedCount(Units.OVERLORD))
             {
-                if (zerglingScout == null)
-                    zerglingScout = Controller.GetAvailableAgent(Units.ZERGLING);
-                if (zerglingScout != null)
-                {
-                    if (!zerglingScout.Busy)
-                        zerglingScout.Busy = true;
-                    if (zerglingScout.Unit.Orders.Count > 0)
-                        return;
-                    zerglingScout.Order(Abilities.MOVE, GetNextScoutLocation());
-                }
+                Agent ov = Controller.GetAvailableAgent(Units.OVERLORD);
+                ov.Busy = true;
+                AssignAgents(ov);
             }
-            
+
+            int ovieCount = overlords.Count() ;
+
+            foreach (Point2D loc in scoutLocations)
+            {
+                if (ovieCount == 0)
+                    break;
+                if (EnemyStrategyManager.EnemyBuildingAtLocation(loc))
+                    continue;
+                new SingleUnitScoutTask(overlords[overlords.Count() - ovieCount], loc);
+                ovieCount--;
+            }
+
+
         }
     }
 }

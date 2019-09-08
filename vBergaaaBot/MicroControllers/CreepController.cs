@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using vBergaaaBot.Tasks;
 
 namespace vBergaaaBot.MicroControllers
 {
     public class CreepController : MicroController
     {
+        SpreadCreepTask t = null;
         public override void CheckRequirements()
         {
             if (Controller.GetCompletedCount(Units.HATCHERY) + 1 <=
@@ -23,24 +25,14 @@ namespace vBergaaaBot.MicroControllers
             CheckRequirements();
             if (Active)
             {
-                if (AssignedAgents.Count==0)
+                if (AssignedAgents.Count == 0)
                 {
                     Agent q = Controller.GetAvailableAgent(Units.QUEEN);
                     AssignedAgents.Add(q);
                     q.Busy = true;
-
+                    t = new SpreadCreepTask(q);
                 }
-
-                if (AssignedAgents[0].Unit.Energy >= 25 && AssignedAgents[0].Unit.Orders.Count == 0)
-                    AssignedAgents[0].Order(Abilities.SPREAD_CREEP_QUEEN, Controller.GetTumorLocation(Sc2Util.To2D(AssignedAgents[0].Unit.Pos),12));
-                if (VBot.Bot.Observation.Observation.GameLoop % 320 == 0)
-                    foreach (var tumor in Controller.GetAgents(Units.CREEP_TUMOR_BURROWED))
-                    {
-                        tumor.Order(Abilities.SPREAD_CREEP_TUMOR, Controller.GetTumorLocation(Sc2Util.To2D(tumor.Unit.Pos),7));
-                    }
             }
-
-
         }
         public override void Deactivate()
         {
