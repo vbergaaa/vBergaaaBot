@@ -6,13 +6,12 @@ Release Date: 8/9/2019
 Author: Ryan Vandenberg
 
 Description:
-Fixed an issue causing buildings to build inside the mineral line.
+Remodel of scout task and enabled overlord scouting
 
-Agents that are ordered to a macro task will reserve resources as the order is issued.
+Remodel of creep task to spread creep more evenly
 
-Remodeled the creep controller, enabling creep to be spread more evenly accross the map.
+Fixed an issue causing buildings to build in the mineral line
 
-Remodeled the Scout Task and Zerg's Scout MicroController to use overlords for scouting. 
 -------------------------------------------------------
 
 Version: 2.0.2
@@ -25,7 +24,7 @@ Modification of the distribute workers function to stop them overmining from a b
 
 Modification of GetAvailableAgent function to exclude units in construction
 
-Modification of GetGasLocation function to aviod geysers that have an agent onto of them
+Modification of GetGasLocation function to aviod geysers that have an agent ontop of them
 
 Added optional functionality to automaticallly start a new game when a game ends
 
